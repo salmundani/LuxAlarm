@@ -110,6 +110,9 @@ fun AlarmScreen(modifier: Modifier = Modifier, alarmViewModel: AlarmViewModel = 
             onConfirm = {
                 if (alarmToEdit != null) {
                     alarmViewModel.updateAlarmTime(alarmToEdit!!.id, timePickerState.hour, timePickerState.minute)
+                    if (alarmToEdit!!.isActive && AlarmScheduler.canScheduleExactAlarms(context)) {
+                        showSetAlarmToast(context, timePickerState.hour, timePickerState.minute)
+                    }
                 } else {
                     alarmViewModel.addAlarm(timePickerState.hour, timePickerState.minute)
                     if (AlarmScheduler.canScheduleExactAlarms(context)) {

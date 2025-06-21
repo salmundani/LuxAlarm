@@ -58,13 +58,10 @@ class AlarmActivity : ComponentActivity() {
     }
     
     private fun stopAlarm() {
-        // Stop the alarm service
         val stopIntent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_STOP_ALARM
         }
         startService(stopIntent)
-        
-        // Close this activity
         finish()
     }
 }
@@ -83,7 +80,6 @@ fun AlarmRingingScreen(onStopAlarm: () -> Unit) {
         getTimeBasedGreeting()
     }
 
-    // Soft gradient background
     val gradientColors = listOf(
         Color(0xFF6366F1), // Soft indigo
         Color(0xFF8B5CF6), // Soft purple
