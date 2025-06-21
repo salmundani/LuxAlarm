@@ -151,15 +151,15 @@ private fun showSetAlarmToast(context: Context, hour: Int, minute: Int) {
     }
 
     val diffMillis = scheduledTime.timeInMillis - now.timeInMillis
-    val totalMinutes = diffMillis / (1000 * 60)
-    val hours = (totalMinutes / 60).toInt()
-    val minutes = (totalMinutes % 60).toInt()
+    val totalMinutes = kotlin.math.ceil(diffMillis / (1000.0 * 60)).toInt()
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
 
     val timeParts = mutableListOf<String>()
     if (hours > 0) {
         timeParts.add("$hours ${if (hours == 1) "hour" else "hours"}")
     }
-    if (minutes > 0 || timeParts.isEmpty()) { // Also show minutes if it's 0 and hours is 0
+    if (minutes > 0 || timeParts.isEmpty()) {
         timeParts.add("$minutes ${if (minutes == 1) "minute" else "minutes"}")
     }
 
