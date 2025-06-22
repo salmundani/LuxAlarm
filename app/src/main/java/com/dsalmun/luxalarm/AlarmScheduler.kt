@@ -18,13 +18,16 @@ object AlarmScheduler {
         }
     }
     
-    private fun scheduleExactAlarm(context: Context, triggerAtMillis: Long, requestCode: Int = 0): Boolean {
+    private fun scheduleExactAlarm(context: Context, triggerAtMillis: Long, requestCode: Int = 0, hour: Int? = null, minute: Int? = null): Boolean {
         if (!canScheduleExactAlarms(context)) {
             return false
         }
         
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            hour?.let { putExtra("alarm_hour", it) }
+            minute?.let { putExtra("alarm_minute", it) }
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             requestCode,
@@ -52,7 +55,7 @@ object AlarmScheduler {
                 add(Calendar.DAY_OF_MONTH, 1) // schedule for next day if time has passed
             }
         }
-        return scheduleExactAlarm(context, alarmTime.timeInMillis, requestCode)
+        return scheduleExactAlarm(context, alarmTime.timeInMillis, requestCode, hour, minute)
     }
 
     fun cancelAlarm(context: Context, requestCode: Int) {

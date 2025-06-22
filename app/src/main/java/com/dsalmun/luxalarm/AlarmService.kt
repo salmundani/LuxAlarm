@@ -1,6 +1,7 @@
 package com.dsalmun.luxalarm
 
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -17,6 +18,7 @@ class AlarmService : Service() {
 
     companion object {
         const val ACTION_STOP_ALARM = "com.dsalmun.luxalarm.STOP_ALARM"
+        private const val ALARM_PLAYING_PREF = "alarm_playing"
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -79,6 +81,11 @@ class AlarmService : Service() {
 
         vibrator?.cancel()
         vibrator = null
+
+        val sharedPrefs = getSharedPreferences("luxalarm_prefs", Context.MODE_PRIVATE)
+        sharedPrefs.edit()
+            .putBoolean(ALARM_PLAYING_PREF, false)
+            .apply()
 
         stopSelf()
     }
