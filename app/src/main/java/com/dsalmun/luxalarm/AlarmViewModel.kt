@@ -1,6 +1,10 @@
 package com.dsalmun.luxalarm
 
 import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +18,45 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     val alarms: StateFlow<List<AlarmItem>> = _alarms
 
     private val alarmScheduler = AlarmScheduler
+    
+    private val alarmDisableReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == AlarmService.ACTION_DISABLE_ALARM) {
+                val alarmId = intent.getIntExtra(AlarmService.EXTRA_ALARM_ID, -1)
+                if (alarmId != -1) {
+                    disableAlarmAfterPlaying(alarmId)
+                }
+            }
+        }
+    }
+
+    init {
+        // Register the broadcast receiver to listen for alarm disable events
+        val filter = IntentFilter(AlarmService.ACTION_DISABLE_ALARM)
+        getApplication<Application>().registerReceiver(alarmDisableReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Unregister the broadcast receiver when ViewModel is cleared
+        try {
+            getApplication<Application>().unregisterReceiver(alarmDisableReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver was already unregistered
+        }
+    }
+
+    private fun disableAlarmAfterPlaying(alarmId: Int) {
+        viewModelScope.launch {
+            _alarms.value = _alarms.value.map {
+                if (it.id == alarmId) {
+                    it.copy(isActive = false)
+                } else {
+                    it
+                }
+            }
+        }
+    }
 
     fun addAlarm(hour: Int, minute: Int) {
         viewModelScope.launch {

@@ -19,32 +19,44 @@ class AlarmReceiver : BroadcastReceiver() {
         private const val ALARM_PLAYING_PREF = "alarm_playing"
         private const val ALARM_HOUR_PREF = "alarm_hour"
         private const val ALARM_MINUTE_PREF = "alarm_minute"
+        private const val ALARM_IDS_PREF = "alarm_ids"
     }
     
     override fun onReceive(context: Context, intent: Intent?) {
         val sharedPrefs = context.getSharedPreferences("luxalarm_prefs", Context.MODE_PRIVATE)
-        val isAlarmPlaying = sharedPrefs.getBoolean(ALARM_PLAYING_PREF, false)
-        val currentAlarmHour = sharedPrefs.getInt(ALARM_HOUR_PREF, -1)
-        val currentAlarmMinute = sharedPrefs.getInt(ALARM_MINUTE_PREF, -1)
         
         val alarmHour = intent?.getIntExtra("alarm_hour", -1) ?: -1
         val alarmMinute = intent?.getIntExtra("alarm_minute", -1) ?: -1
+        val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
         
-        val isSameTime = isAlarmPlaying && 
-                        currentAlarmHour == alarmHour && 
-                        currentAlarmMinute == alarmMinute
+        // Check if this is the first alarm for this time
+        val isFirstAlarmForThisTime = !sharedPrefs.getBoolean(ALARM_PLAYING_PREF, false) ||
+                                      sharedPrefs.getInt(ALARM_HOUR_PREF, -1) != alarmHour ||
+                                      sharedPrefs.getInt(ALARM_MINUTE_PREF, -1) != alarmMinute
         
-        val shouldStartNewAlarm = !isSameTime
+        // Collect alarm IDs for the current time
+        val currentAlarmIds = if (isFirstAlarmForThisTime) {
+            // Start fresh for a new time
+            mutableSetOf(alarmId.toString())
+        } else {
+            // Add to existing alarms for the same time
+            val existingIds = sharedPrefs.getStringSet(ALARM_IDS_PREF, emptySet())?.toMutableSet() ?: mutableSetOf()
+            existingIds.add(alarmId.toString())
+            existingIds
+        }
         
-        if (shouldStartNewAlarm) {
-            // Mark that an alarm is now playing and store the time
-            sharedPrefs.edit()
-                .putBoolean(ALARM_PLAYING_PREF, true)
-                .putInt(ALARM_HOUR_PREF, alarmHour)
-                .putInt(ALARM_MINUTE_PREF, alarmMinute)
-                .apply()
-            
-            val serviceIntent = Intent(context, AlarmService::class.java)
+        sharedPrefs.edit()
+            .putBoolean(ALARM_PLAYING_PREF, true)
+            .putInt(ALARM_HOUR_PREF, alarmHour)
+            .putInt(ALARM_MINUTE_PREF, alarmMinute)
+            .putStringSet(ALARM_IDS_PREF, currentAlarmIds)
+            .apply()
+        
+        // Only start the service and activity for the first alarm at this time
+        if (isFirstAlarmForThisTime) {
+            val serviceIntent = Intent(context, AlarmService::class.java).apply {
+                putExtra("alarm_id", alarmId)
+            }
             context.startService(serviceIntent)
             
             val activityIntent = Intent(context, AlarmActivity::class.java).apply {
@@ -53,6 +65,7 @@ class AlarmReceiver : BroadcastReceiver() {
                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
                        Intent.FLAG_ACTIVITY_NO_USER_ACTION or
                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                putExtra("alarm_id", alarmId)
             }
             context.startActivity(activityIntent)
             
@@ -62,6 +75,7 @@ class AlarmReceiver : BroadcastReceiver() {
             // Create a pending intent for the full screen intent
             val fullScreenIntent = Intent(context, AlarmActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("alarm_id", alarmId)
             }
             val fullScreenPendingIntent = PendingIntent.getActivity(
                 context,

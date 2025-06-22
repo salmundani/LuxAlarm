@@ -27,9 +27,12 @@ import java.util.*
 
 class AlarmActivity : ComponentActivity() {
     
+    private var alarmId: Int = -1
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        alarmId = intent.getIntExtra("alarm_id", -1)
         setupScreenWake()
 
         setContent {
@@ -60,6 +63,7 @@ class AlarmActivity : ComponentActivity() {
     private fun stopAlarm() {
         val stopIntent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_STOP_ALARM
+            putExtra("alarm_id", alarmId)
         }
         startService(stopIntent)
         finish()
