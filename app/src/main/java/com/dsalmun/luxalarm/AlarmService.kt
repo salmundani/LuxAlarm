@@ -10,7 +10,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.os.Build
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.edit
 
 class AlarmService : Service() {

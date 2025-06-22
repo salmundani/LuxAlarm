@@ -1,6 +1,11 @@
 package com.dsalmun.luxalarm
 
+import android.content.Context
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowInsets
@@ -25,22 +30,58 @@ import com.dsalmun.luxalarm.ui.theme.LuxAlarmTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
-class AlarmActivity : ComponentActivity() {
+class AlarmActivity : ComponentActivity(), SensorEventListener {
     
     private var alarmId: Int = -1
+    private lateinit var sensorManager: SensorManager
+    private var lightSensor: Sensor? = null
+    private var currentLightLevel by mutableFloatStateOf(0f)
+    private val requiredLightLevel = 10000f
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         alarmId = intent.getIntExtra("alarm_id", -1)
         setupScreenWake()
+        setupLightSensor()
 
         setContent {
             LuxAlarmTheme {
-                AlarmRingingScreen { stopAlarm() }
+                AlarmRingingScreen(
+                    currentLightLevel = currentLightLevel,
+                    requiredLightLevel = requiredLightLevel,
+                    onStopAlarm = { stopAlarm() }
+                )
             }
         }
         setupFullscreen()
+    }
+    
+    private fun setupLightSensor() {
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        lightSensor?.let { sensor ->
+            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
+        }
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        sensorManager.unregisterListener(this)
+    }
+    
+    override fun onSensorChanged(event: SensorEvent) {
+        if (event.sensor.type == Sensor.TYPE_LIGHT) {
+            currentLightLevel = event.values[0]
+        }
+    }
+    
+    override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
+        // No action needed for light sensor accuracy changes
     }
     
     private fun setupScreenWake() {
@@ -71,15 +112,17 @@ class AlarmActivity : ComponentActivity() {
 }
 
 @Composable
-fun AlarmRingingScreen(onStopAlarm: () -> Unit) {
+fun AlarmRingingScreen(
+    currentLightLevel: Float,
+    requiredLightLevel: Float,
+    onStopAlarm: () -> Unit
+) {
     val currentTime = remember {
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
     }
-    
     val currentDate = remember {
         SimpleDateFormat("EEEE, MMMM dd", Locale.getDefault()).format(Date())
     }
-    
     val greeting = remember {
         getTimeBasedGreeting()
     }
@@ -89,6 +132,8 @@ fun AlarmRingingScreen(onStopAlarm: () -> Unit) {
         Color(0xFF8B5CF6), // Soft purple
         Color(0xFFA855F7)  // Light purple
     )
+
+    val isButtonEnabled = currentLightLevel >= requiredLightLevel
 
     Box(
         modifier = Modifier
@@ -105,60 +150,125 @@ fun AlarmRingingScreen(onStopAlarm: () -> Unit) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(32.dp)
+        ) {
+            TimeDisplay(greeting, currentDate, currentTime)
+            Spacer(modifier = Modifier.height(48.dp))
+            LightSensorIndicator(currentLightLevel, requiredLightLevel, isButtonEnabled)
+            AlarmControlButton(isButtonEnabled, onStopAlarm)
+        }
+    }
+}
+
+@Composable
+private fun TimeDisplay(greeting: String, currentDate: String, currentTime: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = greeting,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Light,
+            color = Color.White.copy(alpha = 0.9f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = currentDate,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Normal,
+            color = Color.White.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = currentTime,
+            fontSize = 64.sp,
+            fontWeight = FontWeight.Light,
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun LightSensorIndicator(
+    currentLightLevel: Float,
+    requiredLightLevel: Float,
+    isButtonEnabled: Boolean
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth(0.8f)
+            .padding(bottom = 24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.1f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = greeting,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Light,
-                color = Color.White.copy(alpha = 0.9f),
-                textAlign = TextAlign.Center
+                text = "Light Level",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White.copy(alpha = 0.7f)
             )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
             Text(
-                text = currentDate,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                color = Color.White.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
+                text = "${currentLightLevel.toInt()} lx",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isButtonEnabled) Color(0xFF10B981) else Color.White
             )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
             Text(
-                text = currentTime,
-                fontSize = 64.sp,
-                fontWeight = FontWeight.Light,
-                color = Color.White,
+                text = if (isButtonEnabled) "Bright enough!" else "Need ${requiredLightLevel.toInt()} lx minimum",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center
             )
-            
-            Spacer(modifier = Modifier.height(48.dp))
-            
-            ElevatedButton(
-                onClick = onStopAlarm,
-                modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.elevatedButtonColors(
-                    containerColor = Color.White.copy(alpha = 0.95f),
-                    contentColor = Color(0xFF6366F1)
-                ),
-                elevation = ButtonDefaults.elevatedButtonElevation(
-                    defaultElevation = 8.dp,
-                    pressedElevation = 12.dp
-                )
-            ) {
+            if (!isButtonEnabled) {
                 Text(
-                    text = "Turn Off Alarm",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
+                    text = "Go to a brighter area to turn off alarm",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AlarmControlButton(isButtonEnabled: Boolean, onStopAlarm: () -> Unit) {
+    ElevatedButton(
+        onClick = onStopAlarm,
+        enabled = isButtonEnabled,
+        modifier = Modifier
+            .fillMaxWidth(0.6f)
+            .height(56.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = ButtonDefaults.elevatedButtonColors(
+            containerColor = if (isButtonEnabled) Color.White.copy(alpha = 0.95f) else Color.Gray.copy(alpha = 0.5f),
+            contentColor = if (isButtonEnabled) Color(0xFF6366F1) else Color.White.copy(alpha = 0.6f),
+            disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
+            disabledContentColor = Color.White.copy(alpha = 0.4f)
+        ),
+        elevation = ButtonDefaults.elevatedButtonElevation(
+            defaultElevation = if (isButtonEnabled) 8.dp else 2.dp,
+            pressedElevation = if (isButtonEnabled) 12.dp else 2.dp,
+            disabledElevation = 0.dp
+        )
+    ) {
+        Text(
+            text = if (isButtonEnabled) "Turn Off Alarm" else "Need More Light",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
