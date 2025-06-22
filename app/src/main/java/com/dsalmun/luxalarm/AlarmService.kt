@@ -74,6 +74,8 @@ class AlarmService : Service() {
     }
 
     private fun stopAlarm() {
+        dismissNotification()
+        
         mediaPlayer?.apply {
             if (isPlaying) {
                 stop()
@@ -107,9 +109,12 @@ class AlarmService : Service() {
             }
         }
 
-        NotificationManagerCompat.from(this).cancel(AlarmReceiver.ALARM_NOTIFICATION_ID)
-
         stopSelf()
+    }
+
+    private fun dismissNotification() {
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancel(AlarmReceiver.ALARM_NOTIFICATION_ID)
     }
 
     override fun onDestroy() {
