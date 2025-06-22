@@ -5,7 +5,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dsalmun.luxalarm.data.AlarmItem
@@ -33,7 +35,16 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     init {
         // Register the broadcast receiver to listen for alarm disable events
         val filter = IntentFilter(AlarmService.ACTION_DISABLE_ALARM)
-        getApplication<Application>().registerReceiver(alarmDisableReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getApplication<Application>().registerReceiver(alarmDisableReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            ContextCompat.registerReceiver(
+                getApplication<Application>(),
+                alarmDisableReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        }
     }
 
     override fun onCleared() {
