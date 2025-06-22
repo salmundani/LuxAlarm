@@ -71,7 +71,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addAlarm(hour: Int, minute: Int) {
         viewModelScope.launch {
-            val newAlarm = AlarmItem(hour = hour, minute = minute)
+            val newAlarm = AlarmItem.create(getApplication(), hour = hour, minute = minute)
             if (alarmScheduler.scheduleExactAlarmAt(getApplication(), newAlarm.hour, newAlarm.minute, newAlarm.id)) {
                 _alarms.value = _alarms.value + newAlarm
             } else {
