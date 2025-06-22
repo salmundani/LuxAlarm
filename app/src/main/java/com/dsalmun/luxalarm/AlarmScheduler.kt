@@ -40,11 +40,6 @@ object AlarmScheduler {
         return true
     }
 
-    fun scheduleExactAlarmInSeconds(context: Context, secondsFromNow: Int, requestCode: Int = 0): Boolean {
-        val triggerAtMillis = System.currentTimeMillis() + secondsFromNow * 1000L
-        return scheduleExactAlarm(context, triggerAtMillis, requestCode)
-    }
-
     fun scheduleExactAlarmAt(context: Context, hour: Int, minute: Int, requestCode: Int = 0): Boolean {
         val now = Calendar.getInstance()
         val alarmTime = Calendar.getInstance().apply {

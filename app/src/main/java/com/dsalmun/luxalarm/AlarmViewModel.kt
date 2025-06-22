@@ -41,7 +41,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         // Unregister the broadcast receiver when ViewModel is cleared
         try {
             getApplication<Application>().unregisterReceiver(alarmDisableReceiver)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             // Receiver was already unregistered
         }
     }

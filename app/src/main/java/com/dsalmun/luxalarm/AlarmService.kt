@@ -1,7 +1,6 @@
 package com.dsalmun.luxalarm
 
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -16,7 +15,6 @@ import androidx.core.content.edit
 class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
-    private var currentAlarmId: Int = -1
 
     companion object {
         const val ACTION_STOP_ALARM = "com.dsalmun.luxalarm.STOP_ALARM"
@@ -30,12 +28,10 @@ class AlarmService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return when (intent?.action) {
             ACTION_STOP_ALARM -> {
-                val alarmId = intent.getIntExtra(EXTRA_ALARM_ID, -1)
-                stopAlarm(alarmId)
+                stopAlarm()
                 START_NOT_STICKY
             }
             else -> {
-                currentAlarmId = intent?.getIntExtra(EXTRA_ALARM_ID, -1) ?: -1
                 startAlarm()
                 START_STICKY
             }
@@ -76,7 +72,7 @@ class AlarmService : Service() {
         }
     }
 
-    private fun stopAlarm(alarmId: Int = -1) {
+    private fun stopAlarm() {
         mediaPlayer?.apply {
             if (isPlaying) {
                 stop()
@@ -88,14 +84,14 @@ class AlarmService : Service() {
         vibrator?.cancel()
         vibrator = null
 
-        val sharedPrefs = getSharedPreferences("luxalarm_prefs", Context.MODE_PRIVATE)
+        val sharedPrefs = getSharedPreferences("luxalarm_prefs", MODE_PRIVATE)
         
         val playingAlarmIds = sharedPrefs.getStringSet("alarm_ids", emptySet()) ?: emptySet()
         
-        sharedPrefs.edit()
-            .putBoolean(ALARM_PLAYING_PREF, false)
-            .putStringSet("alarm_ids", emptySet()) // Clear the playing alarms
-            .apply()
+        sharedPrefs.edit {
+            putBoolean(ALARM_PLAYING_PREF, false)
+                .putStringSet("alarm_ids", emptySet()) // Clear the playing alarms
+        }
 
         // Send broadcast to disable all alarms that were playing
         playingAlarmIds.forEach { alarmIdString ->

@@ -12,6 +12,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 
 class AlarmReceiver : BroadcastReceiver() {
     
@@ -45,12 +46,12 @@ class AlarmReceiver : BroadcastReceiver() {
             existingIds
         }
         
-        sharedPrefs.edit()
-            .putBoolean(ALARM_PLAYING_PREF, true)
-            .putInt(ALARM_HOUR_PREF, alarmHour)
-            .putInt(ALARM_MINUTE_PREF, alarmMinute)
-            .putStringSet(ALARM_IDS_PREF, currentAlarmIds)
-            .apply()
+        sharedPrefs.edit {
+            putBoolean(ALARM_PLAYING_PREF, true)
+                .putInt(ALARM_HOUR_PREF, alarmHour)
+                .putInt(ALARM_MINUTE_PREF, alarmMinute)
+                .putStringSet(ALARM_IDS_PREF, currentAlarmIds)
+        }
         
         // Only start the service and activity for the first alarm at this time
         if (isFirstAlarmForThisTime) {

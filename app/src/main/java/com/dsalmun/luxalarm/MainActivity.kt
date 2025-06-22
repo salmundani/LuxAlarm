@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        // Handle notification permission result if needed
+        // TODO: Handle notification permission result
     }
 
     private val requestExactAlarmPermissionLauncher = registerForActivityResult(
@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
     ) { result ->
         // Check if permission was granted after returning from settings
         if (!AlarmScheduler.canScheduleExactAlarms(this)) {
-            // User didn't grant permission - you could show a dialog explaining why it's needed
+            // TODO: User didn't grant permission. Show a dialog explaining why it's needed
         }
     }
 
