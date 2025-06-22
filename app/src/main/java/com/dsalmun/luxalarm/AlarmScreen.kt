@@ -30,17 +30,15 @@ fun AlarmScreen(modifier: Modifier = Modifier, alarmViewModel: AlarmViewModel = 
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var alarmToEdit by remember { mutableStateOf<AlarmItem?>(null) }
 
-    val timePickerState = rememberTimePickerState(is24Hour = true)
-
-    // When the dialog is shown, initialize the time picker state
-    LaunchedEffect(showTimePickerDialog, alarmToEdit) {
-        if (showTimePickerDialog) {
-            val calendar = Calendar.getInstance()
-            val initialHour = alarmToEdit?.hour ?: calendar[Calendar.HOUR_OF_DAY]
-            val initialMinute = alarmToEdit?.minute ?: calendar[Calendar.MINUTE]
-            timePickerState.hour = initialHour
-            timePickerState.minute = initialMinute
-        }
+    val timePickerState = remember(alarmToEdit) {
+        val calendar = Calendar.getInstance()
+        val initialHour = alarmToEdit?.hour ?: calendar[Calendar.HOUR_OF_DAY]
+        val initialMinute = alarmToEdit?.minute ?: calendar[Calendar.MINUTE]
+        TimePickerState(
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            is24Hour = true
+        )
     }
 
     Scaffold(

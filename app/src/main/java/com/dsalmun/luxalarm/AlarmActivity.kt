@@ -160,7 +160,7 @@ fun AlarmRingingScreen(onStopAlarm: () -> Unit) {
 
 private fun getTimeBasedGreeting(): String {
     val calendar = Calendar.getInstance()
-    val hour = calendar.get(Calendar.HOUR_OF_DAY)
+    val hour = calendar[Calendar.HOUR_OF_DAY]
     
     return when (hour) {
         in 5..11 -> "Good Morning"
