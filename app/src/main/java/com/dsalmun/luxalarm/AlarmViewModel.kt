@@ -113,16 +113,22 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _alarms.value = _alarms.value.map {
                 if (it.id == alarmId) {
-                    it.copy(hour = hour, minute = minute)
+                    it.copy(hour = hour, minute = minute, isActive = true)
                 } else {
                     it
                 }
             }
             val updatedAlarm = _alarms.value.first { it.id == alarmId }
-            if (updatedAlarm.isActive) {
-                if (!alarmScheduler.scheduleExactAlarmAt(getApplication(), updatedAlarm.hour, updatedAlarm.minute, updatedAlarm.id)) {
-                    Toast.makeText(getApplication(), "Cannot schedule exact alarms. Please grant permission in settings.", Toast.LENGTH_LONG).show()
+            if (!alarmScheduler.scheduleExactAlarmAt(getApplication(), updatedAlarm.hour, updatedAlarm.minute, updatedAlarm.id)) {
+                // Permission denied - revert the change
+                _alarms.value = _alarms.value.map {
+                    if (it.id == alarmId) {
+                        it.copy(isActive = false)
+                    } else {
+                        it
+                    }
                 }
+                Toast.makeText(getApplication(), "Cannot schedule exact alarms. Please grant permission in settings.", Toast.LENGTH_LONG).show()
             }
         }
     }
