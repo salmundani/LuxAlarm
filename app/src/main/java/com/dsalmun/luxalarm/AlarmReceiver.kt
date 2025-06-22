@@ -21,6 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
         private const val ALARM_HOUR_PREF = "alarm_hour"
         private const val ALARM_MINUTE_PREF = "alarm_minute"
         private const val ALARM_IDS_PREF = "alarm_ids"
+        const val ALARM_NOTIFICATION_ID = 1001
     }
     
     override fun onReceive(context: Context, intent: Intent?) {
@@ -98,11 +99,11 @@ class AlarmReceiver : BroadcastReceiver() {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                    NotificationManagerCompat.from(context).notify(System.currentTimeMillis().toInt(), notification)
+                    NotificationManagerCompat.from(context).notify(ALARM_NOTIFICATION_ID, notification)
                 }
             } else {
                 // For older versions, permission is granted by default
-                NotificationManagerCompat.from(context).notify(System.currentTimeMillis().toInt(), notification)
+                NotificationManagerCompat.from(context).notify(ALARM_NOTIFICATION_ID, notification)
             }
         }
     }

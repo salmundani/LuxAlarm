@@ -10,6 +10,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.os.Build
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.edit
 
 class AlarmService : Service() {
@@ -105,6 +106,8 @@ class AlarmService : Service() {
                 sendBroadcast(disableIntent)
             }
         }
+
+        NotificationManagerCompat.from(this).cancel(AlarmReceiver.ALARM_NOTIFICATION_ID)
 
         stopSelf()
     }
