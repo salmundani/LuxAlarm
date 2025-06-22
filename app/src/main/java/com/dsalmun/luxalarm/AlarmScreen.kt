@@ -159,7 +159,7 @@ private fun showSetAlarmToast(context: Context, hour: Int, minute: Int) {
     if (hours > 0) {
         timeParts.add("$hours ${if (hours == 1) "hour" else "hours"}")
     }
-    if (minutes > 0 || timeParts.isEmpty()) {
+    if (minutes > 0) {
         timeParts.add("$minutes ${if (minutes == 1) "minute" else "minutes"}")
     }
 
