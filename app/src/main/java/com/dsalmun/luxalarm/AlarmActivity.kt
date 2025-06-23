@@ -36,7 +36,7 @@ class AlarmActivity : ComponentActivity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var lightSensor: Sensor? = null
     private var currentLightLevel by mutableFloatStateOf(0f)
-    private val requiredLightLevel = 10000f
+    private val requiredLightLevel = 50f
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +58,7 @@ class AlarmActivity : ComponentActivity(), SensorEventListener {
     }
     
     private fun setupLightSensor() {
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
     }
     
