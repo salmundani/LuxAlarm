@@ -10,20 +10,23 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.dsalmun.luxalarm.data.AlarmDatabase
 import com.dsalmun.luxalarm.data.AlarmItem
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import androidx.core.content.edit
 
 class AlarmViewModel(application: Application) : AndroidViewModel(application) {
-    private val _alarms = MutableStateFlow<List<AlarmItem>>(emptyList())
-    val alarms: StateFlow<List<AlarmItem>> = _alarms
+    private val alarmDao = AlarmDatabase.getDatabase(application).alarmDao()
+    val alarms: StateFlow<List<AlarmItem>> = alarmDao.getAllAlarms()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     private val alarmScheduler = AlarmScheduler
-    private var lastId = 0
-
-    private val sharedPrefs = application.getSharedPreferences("luxalarm_prefs", Context.MODE_PRIVATE)
 
     private val alarmRescheduleReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -37,7 +40,6 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
-        lastId = sharedPrefs.getInt("alarm_id_counter", 0)
         // Register the broadcast receiver to listen for alarm reschedule events
         val filter = IntentFilter(AlarmService.ACTION_RESCHEDULE_ALARM)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -64,7 +66,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun rescheduleAlarmAfterPlaying(alarmId: Int) {
         viewModelScope.launch {
-            val alarm = _alarms.value.find { it.id == alarmId }
+            val alarm = alarmDao.getAlarmById(alarmId)
             if (alarm != null) {
                 alarmScheduler.scheduleExactAlarmAt(
                     getApplication(),
@@ -79,45 +81,34 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addAlarm(hour: Int, minute: Int) {
         viewModelScope.launch {
-            val newId = lastId++
-            sharedPrefs.edit { putInt("alarm_id_counter", lastId) }
-            val newAlarm = AlarmItem(id = newId, hour = hour, minute = minute)
-            if (alarmScheduler.scheduleExactAlarmAt(
+            val newAlarm = AlarmItem(hour = hour, minute = minute)
+            val newId = alarmDao.insert(newAlarm)
+
+            if (!alarmScheduler.scheduleExactAlarmAt(
                     getApplication(),
                     newAlarm.hour,
                     newAlarm.minute,
-                    newAlarm.id,
+                    newId.toInt(),
                     newAlarm.repeatDays
                 )
             ) {
-                _alarms.value = _alarms.value + newAlarm
-            } else {
                 // Permission denied - show error
                 Toast.makeText(getApplication(), "Cannot schedule exact alarms. Please grant permission in settings.", Toast.LENGTH_LONG).show()
+                alarmDao.delete(newAlarm.copy(id = newId.toInt()))
             }
         }
     }
 
     fun toggleAlarm(alarmId: Int, isActive: Boolean) {
         viewModelScope.launch {
-            _alarms.value = _alarms.value.map {
-                if (it.id == alarmId) {
-                    it.copy(isActive = isActive)
-                } else {
-                    it
-                }
-            }
-            val alarm = _alarms.value.first { it.id == alarmId }
+            val alarm = alarmDao.getAlarmById(alarmId) ?: return@launch
+            val updatedAlarm = alarm.copy(isActive = isActive)
+            alarmDao.update(updatedAlarm)
+
             if (isActive) {
                 if (!alarmScheduler.scheduleExactAlarmAt(getApplication(), alarm.hour, alarm.minute, alarm.id, alarm.repeatDays)) {
                     // Permission denied - revert the change
-                    _alarms.value = _alarms.value.map {
-                        if (it.id == alarmId) {
-                            it.copy(isActive = false)
-                        } else {
-                            it
-                        }
-                    }
+                    alarmDao.update(alarm.copy(isActive = false))
                     Toast.makeText(getApplication(), "Cannot schedule exact alarms. Please grant permission in settings.", Toast.LENGTH_LONG).show()
                 }
             } else {
@@ -128,23 +119,13 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateAlarmTime(alarmId: Int, hour: Int, minute: Int) {
         viewModelScope.launch {
-            _alarms.value = _alarms.value.map {
-                if (it.id == alarmId) {
-                    it.copy(hour = hour, minute = minute, isActive = true)
-                } else {
-                    it
-                }
-            }
-            val updatedAlarm = _alarms.value.first { it.id == alarmId }
+            val alarm = alarmDao.getAlarmById(alarmId) ?: return@launch
+            val updatedAlarm = alarm.copy(hour = hour, minute = minute, isActive = true)
+            alarmDao.update(updatedAlarm)
+
             if (!alarmScheduler.scheduleExactAlarmAt(getApplication(), updatedAlarm.hour, updatedAlarm.minute, updatedAlarm.id, updatedAlarm.repeatDays)) {
                 // Permission denied - revert the change
-                _alarms.value = _alarms.value.map {
-                    if (it.id == alarmId) {
-                        it.copy(isActive = false)
-                    } else {
-                        it
-                    }
-                }
+                alarmDao.update(alarm.copy(isActive = false))
                 Toast.makeText(getApplication(), "Cannot schedule exact alarms. Please grant permission in settings.", Toast.LENGTH_LONG).show()
             }
         }
@@ -152,24 +133,19 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteAlarm(alarmId: Int) {
         viewModelScope.launch {
-            _alarms.value.find { it.id == alarmId }?.let { alarmToCancel ->
+            alarmDao.getAlarmById(alarmId)?.let { alarmToCancel ->
                 alarmScheduler.cancelAlarm(getApplication(), alarmToCancel.id)
-                _alarms.value = _alarms.value.filterNot { it.id == alarmId }
+                alarmDao.delete(alarmToCancel)
             }
         }
     }
 
     fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>) {
         viewModelScope.launch {
-            _alarms.value = _alarms.value.map {
-                if (it.id == alarmId) {
-                    it.copy(repeatDays = repeatDays)
-                } else {
-                    it
-                }
-            }
+            val alarm = alarmDao.getAlarmById(alarmId) ?: return@launch
+            val updatedAlarm = alarm.copy(repeatDays = repeatDays)
+            alarmDao.update(updatedAlarm)
             // Reschedule the alarm with the updated repeat days
-            val updatedAlarm = _alarms.value.first { it.id == alarmId }
             if (updatedAlarm.isActive) {
                 alarmScheduler.scheduleExactAlarmAt(
                     getApplication(),
