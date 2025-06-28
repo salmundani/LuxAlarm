@@ -14,13 +14,17 @@ import com.dsalmun.luxalarm.data.AlarmItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import androidx.core.content.edit
 
 class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     private val _alarms = MutableStateFlow<List<AlarmItem>>(emptyList())
     val alarms: StateFlow<List<AlarmItem>> = _alarms
 
     private val alarmScheduler = AlarmScheduler
-    
+    private var lastId = 0
+
+    private val sharedPrefs = application.getSharedPreferences("luxalarm_prefs", Context.MODE_PRIVATE)
+
     private val alarmDisableReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == AlarmService.ACTION_DISABLE_ALARM) {
@@ -33,6 +37,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
+        lastId = sharedPrefs.getInt("alarm_id_counter", 0)
         // Register the broadcast receiver to listen for alarm disable events
         val filter = IntentFilter(AlarmService.ACTION_DISABLE_ALARM)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -59,11 +64,14 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun disableAlarmAfterPlaying(alarmId: Int) {
         viewModelScope.launch {
-            _alarms.value = _alarms.value.map {
-                if (it.id == alarmId) {
-                    it.copy(isActive = false)
-                } else {
-                    it
+            val alarm = _alarms.value.find { it.id == alarmId }
+            if (alarm != null && alarm.repeatDays.isEmpty()) {
+                _alarms.value = _alarms.value.map {
+                    if (it.id == alarmId) {
+                        it.copy(isActive = false)
+                    } else {
+                        it
+                    }
                 }
             }
         }
@@ -71,8 +79,17 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addAlarm(hour: Int, minute: Int) {
         viewModelScope.launch {
-            val newAlarm = AlarmItem.create(getApplication(), hour = hour, minute = minute)
-            if (alarmScheduler.scheduleExactAlarmAt(getApplication(), newAlarm.hour, newAlarm.minute, newAlarm.id)) {
+            val newId = lastId++
+            sharedPrefs.edit { putInt("alarm_id_counter", lastId) }
+            val newAlarm = AlarmItem(id = newId, hour = hour, minute = minute)
+            if (alarmScheduler.scheduleExactAlarmAt(
+                    getApplication(),
+                    newAlarm.hour,
+                    newAlarm.minute,
+                    newAlarm.id,
+                    newAlarm.repeatDays
+                )
+            ) {
                 _alarms.value = _alarms.value + newAlarm
             } else {
                 // Permission denied - show error
@@ -92,7 +109,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             }
             val alarm = _alarms.value.first { it.id == alarmId }
             if (isActive) {
-                if (!alarmScheduler.scheduleExactAlarmAt(getApplication(), alarm.hour, alarm.minute, alarm.id)) {
+                if (!alarmScheduler.scheduleExactAlarmAt(getApplication(), alarm.hour, alarm.minute, alarm.id, alarm.repeatDays)) {
                     // Permission denied - revert the change
                     _alarms.value = _alarms.value.map {
                         if (it.id == alarmId) {
@@ -119,7 +136,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             val updatedAlarm = _alarms.value.first { it.id == alarmId }
-            if (!alarmScheduler.scheduleExactAlarmAt(getApplication(), updatedAlarm.hour, updatedAlarm.minute, updatedAlarm.id)) {
+            if (!alarmScheduler.scheduleExactAlarmAt(getApplication(), updatedAlarm.hour, updatedAlarm.minute, updatedAlarm.id, updatedAlarm.repeatDays)) {
                 // Permission denied - revert the change
                 _alarms.value = _alarms.value.map {
                     if (it.id == alarmId) {
@@ -138,6 +155,29 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             _alarms.value.find { it.id == alarmId }?.let { alarmToCancel ->
                 alarmScheduler.cancelAlarm(getApplication(), alarmToCancel.id)
                 _alarms.value = _alarms.value.filterNot { it.id == alarmId }
+            }
+        }
+    }
+
+    fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>) {
+        viewModelScope.launch {
+            _alarms.value = _alarms.value.map {
+                if (it.id == alarmId) {
+                    it.copy(repeatDays = repeatDays)
+                } else {
+                    it
+                }
+            }
+            // Reschedule the alarm with the updated repeat days
+            val updatedAlarm = _alarms.value.first { it.id == alarmId }
+            if (updatedAlarm.isActive) {
+                alarmScheduler.scheduleExactAlarmAt(
+                    getApplication(),
+                    updatedAlarm.hour,
+                    updatedAlarm.minute,
+                    updatedAlarm.id,
+                    updatedAlarm.repeatDays
+                )
             }
         }
     }

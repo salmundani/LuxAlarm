@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
+import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
     
@@ -30,6 +31,12 @@ class AlarmReceiver : BroadcastReceiver() {
         val alarmHour = intent?.getIntExtra("alarm_hour", -1) ?: -1
         val alarmMinute = intent?.getIntExtra("alarm_minute", -1) ?: -1
         val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
+        val repeatDays = intent?.getIntegerArrayListExtra("repeat_days")?.toSet() ?: emptySet()
+        
+        // Reschedule if it's a repeating alarm and the alarm is still active
+        if (repeatDays.isNotEmpty()) {
+            AlarmScheduler.scheduleExactAlarmAt(context, alarmHour, alarmMinute, alarmId, repeatDays)
+        }
         
         // Check if this is the first alarm for this time
         val isFirstAlarmForThisTime = !sharedPrefs.getBoolean(ALARM_PLAYING_PREF, false) ||
