@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Room-specific ProGuard rules
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+-keepclassmembers class com.dsalmun.luxalarm.data.** { *; }
+-keep class androidx.room.EmptyResultSetException
