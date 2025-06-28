@@ -25,12 +25,12 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     private val sharedPrefs = application.getSharedPreferences("luxalarm_prefs", Context.MODE_PRIVATE)
 
-    private val alarmDisableReceiver = object : BroadcastReceiver() {
+    private val alarmRescheduleReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == AlarmService.ACTION_DISABLE_ALARM) {
+            if (intent?.action == AlarmService.ACTION_RESCHEDULE_ALARM) {
                 val alarmId = intent.getIntExtra(AlarmService.EXTRA_ALARM_ID, -1)
                 if (alarmId != -1) {
-                    disableAlarmAfterPlaying(alarmId)
+                    rescheduleAlarmAfterPlaying(alarmId)
                 }
             }
         }
@@ -38,14 +38,14 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         lastId = sharedPrefs.getInt("alarm_id_counter", 0)
-        // Register the broadcast receiver to listen for alarm disable events
-        val filter = IntentFilter(AlarmService.ACTION_DISABLE_ALARM)
+        // Register the broadcast receiver to listen for alarm reschedule events
+        val filter = IntentFilter(AlarmService.ACTION_RESCHEDULE_ALARM)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getApplication<Application>().registerReceiver(alarmDisableReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            getApplication<Application>().registerReceiver(alarmRescheduleReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             ContextCompat.registerReceiver(
                 getApplication<Application>(),
-                alarmDisableReceiver,
+                alarmRescheduleReceiver,
                 filter,
                 ContextCompat.RECEIVER_NOT_EXPORTED
             )
@@ -56,23 +56,23 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
         // Unregister the broadcast receiver when ViewModel is cleared
         try {
-            getApplication<Application>().unregisterReceiver(alarmDisableReceiver)
+            getApplication<Application>().unregisterReceiver(alarmRescheduleReceiver)
         } catch (_: IllegalArgumentException) {
             // Receiver was already unregistered
         }
     }
 
-    private fun disableAlarmAfterPlaying(alarmId: Int) {
+    private fun rescheduleAlarmAfterPlaying(alarmId: Int) {
         viewModelScope.launch {
             val alarm = _alarms.value.find { it.id == alarmId }
-            if (alarm != null && alarm.repeatDays.isEmpty()) {
-                _alarms.value = _alarms.value.map {
-                    if (it.id == alarmId) {
-                        it.copy(isActive = false)
-                    } else {
-                        it
-                    }
-                }
+            if (alarm != null) {
+                alarmScheduler.scheduleExactAlarmAt(
+                    getApplication(),
+                    alarm.hour,
+                    alarm.minute,
+                    alarm.id,
+                    alarm.repeatDays
+                )
             }
         }
     }

@@ -33,11 +33,6 @@ class AlarmReceiver : BroadcastReceiver() {
         val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
         val repeatDays = intent?.getIntegerArrayListExtra("repeat_days")?.toSet() ?: emptySet()
         
-        // Reschedule if it's a repeating alarm and the alarm is still active
-        if (repeatDays.isNotEmpty()) {
-            AlarmScheduler.scheduleExactAlarmAt(context, alarmHour, alarmMinute, alarmId, repeatDays)
-        }
-        
         // Check if this is the first alarm for this time
         val isFirstAlarmForThisTime = !sharedPrefs.getBoolean(ALARM_PLAYING_PREF, false) ||
                                       sharedPrefs.getInt(ALARM_HOUR_PREF, -1) != alarmHour ||

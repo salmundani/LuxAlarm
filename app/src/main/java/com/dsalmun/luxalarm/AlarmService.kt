@@ -18,7 +18,7 @@ class AlarmService : Service() {
 
     companion object {
         const val ACTION_STOP_ALARM = "com.dsalmun.luxalarm.STOP_ALARM"
-        const val ACTION_DISABLE_ALARM = "com.dsalmun.luxalarm.DISABLE_ALARM"
+        const val ACTION_RESCHEDULE_ALARM = "com.dsalmun.luxalarm.RESCHEDULE_ALARM"
         const val EXTRA_ALARM_ID = "alarm_id"
         private const val ALARM_PLAYING_PREF = "alarm_playing"
     }
@@ -95,16 +95,16 @@ class AlarmService : Service() {
                 .putStringSet("alarm_ids", emptySet()) // Clear the playing alarms
         }
 
-        // Send broadcast to disable all alarms that were playing
+        // Send broadcast to reschedule all alarms that were playing
         playingAlarmIds.forEach { alarmIdString ->
             val alarmIdInt = alarmIdString.toIntOrNull()
             if (alarmIdInt != null) {
-                android.util.Log.d("AlarmService", "Broadcasting disable for alarm ID: $alarmIdInt")
-                val disableIntent = Intent(ACTION_DISABLE_ALARM).apply {
+                android.util.Log.d("AlarmService", "Broadcasting reschedule for alarm ID: $alarmIdInt")
+                val rescheduleIntent = Intent(ACTION_RESCHEDULE_ALARM).apply {
                     putExtra(EXTRA_ALARM_ID, alarmIdInt)
                     setPackage(packageName)
                 }
-                sendBroadcast(disableIntent)
+                sendBroadcast(rescheduleIntent)
             }
         }
 
