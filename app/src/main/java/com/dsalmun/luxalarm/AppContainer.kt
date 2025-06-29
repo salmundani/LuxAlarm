@@ -29,4 +29,4 @@ object AppContainer {
         database = AlarmDatabase.getDatabase(context)
         repository = AlarmRepository(database.alarmDao(), AlarmScheduler, context)
     }
-} 
+}

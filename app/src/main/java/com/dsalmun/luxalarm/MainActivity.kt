@@ -27,25 +27,23 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import com.dsalmun.luxalarm.ui.theme.LuxAlarmTheme
 import androidx.core.net.toUri
+import com.dsalmun.luxalarm.ui.theme.LuxAlarmTheme
 
 class MainActivity : ComponentActivity() {
-
-    private val requestNotificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        // TODO: Handle notification permission result
-    }
-
-    private val requestExactAlarmPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        // Check if permission was granted after returning from settings
-        if (!AlarmScheduler.canScheduleExactAlarms(this)) {
-            // TODO: User didn't grant permission. Show a dialog explaining why it's needed
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean
+            ->
+            // TODO: Handle notification permission result
         }
-    }
+
+    private val requestExactAlarmPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            // Check if permission was granted after returning from settings
+            if (!AlarmScheduler.canScheduleExactAlarms(this)) {
+                // TODO: User didn't grant permission. Show a dialog explaining why it's needed
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,17 +51,16 @@ class MainActivity : ComponentActivity() {
         requestRequiredPermissions()
 
         enableEdgeToEdge()
-        setContent {
-            LuxAlarmTheme {
-                AlarmScreen()
-            }
-        }
+        setContent { LuxAlarmTheme { AlarmScreen() } }
     }
 
     private fun requestRequiredPermissions() {
         // Request notification permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            if (
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED
+            ) {
                 requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
@@ -76,9 +73,10 @@ class MainActivity : ComponentActivity() {
 
     private fun requestExactAlarmPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                data = "package:$packageName".toUri()
-            }
+            val intent =
+                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                    data = "package:$packageName".toUri()
+                }
             requestExactAlarmPermissionLauncher.launch(intent)
         }
     }

@@ -18,11 +18,15 @@ package com.dsalmun.luxalarm
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -31,21 +35,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dsalmun.luxalarm.data.AlarmItem
 import java.util.Calendar
 import java.util.Locale
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -59,9 +59,14 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewMo
 
     LaunchedEffect(key1 = Unit) {
         alarmViewModel.events.collectLatest { event ->
-            when(event) {
+            when (event) {
                 is AlarmViewModel.Event.ShowPermissionError -> {
-                    Toast.makeText(context, "Cannot schedule exact alarms. Please grant permission in settings.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                            context,
+                            "Cannot schedule exact alarms. Please grant permission in settings.",
+                            Toast.LENGTH_SHORT,
+                        )
+                        .show()
                 }
                 is AlarmViewModel.Event.ShowAlarmSetMessage -> {
                     showSetAlarmToast(context, event.hour, event.minute, event.repeatDays)
@@ -70,16 +75,17 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewMo
         }
     }
 
-    val timePickerState = remember(alarmToEdit) {
-        val calendar = Calendar.getInstance()
-        val initialHour = alarmToEdit?.hour ?: calendar[Calendar.HOUR_OF_DAY]
-        val initialMinute = alarmToEdit?.minute ?: calendar[Calendar.MINUTE]
-        TimePickerState(
-            initialHour = initialHour,
-            initialMinute = initialMinute,
-            is24Hour = true
-        )
-    }
+    val timePickerState =
+        remember(alarmToEdit) {
+            val calendar = Calendar.getInstance()
+            val initialHour = alarmToEdit?.hour ?: calendar[Calendar.HOUR_OF_DAY]
+            val initialMinute = alarmToEdit?.minute ?: calendar[Calendar.MINUTE]
+            TimePickerState(
+                initialHour = initialHour,
+                initialMinute = initialMinute,
+                is24Hour = true,
+            )
+        }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -88,49 +94,43 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewMo
                 onClick = {
                     alarmToEdit = null // Ensure we're in "add" mode
                     showTimePickerDialog = true
-                },
+                }
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Alarm"
-                )
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Alarm")
             }
         },
         topBar = {
             TopAppBar(
                 title = { Text("Lux Alarm") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.primary,
+                    ),
             )
-        }
+        },
     ) { innerPadding ->
         if (alarms.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "No alarms set. Tap '+' to add one.",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
         } else {
             LazyColumn(
                 modifier = Modifier.padding(innerPadding),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(alarms, key = { it.id }) { alarm ->
                     AlarmRow(
                         alarm = alarm,
                         expanded = expandedAlarmId == alarm.id,
-                        onToggle = { isActive ->
-                            alarmViewModel.toggleAlarm(alarm.id, isActive)
-                        },
+                        onToggle = { isActive -> alarmViewModel.toggleAlarm(alarm.id, isActive) },
                         onClick = {
                             expandedAlarmId = if (expandedAlarmId == alarm.id) null else alarm.id
                         },
@@ -140,7 +140,7 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewMo
                         },
                         onRepeatDaysChange = { newDays ->
                             alarmViewModel.setRepeatDays(alarm.id, newDays)
-                        }
+                        },
                     )
                 }
             }
@@ -151,7 +151,11 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewMo
         TimePickerDialog(
             onConfirm = {
                 if (alarmToEdit != null) {
-                    alarmViewModel.updateAlarmTime(alarmToEdit!!.id, timePickerState.hour, timePickerState.minute)
+                    alarmViewModel.updateAlarmTime(
+                        alarmToEdit!!.id,
+                        timePickerState.hour,
+                        timePickerState.minute,
+                    )
                 } else {
                     alarmViewModel.addAlarm(timePickerState.hour, timePickerState.minute)
                 }
@@ -162,14 +166,15 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewMo
                 showTimePickerDialog = false
                 alarmToEdit = null
             },
-            onDelete = if (alarmToEdit != null) {
-                {
-                    alarmViewModel.deleteAlarm(alarmToEdit!!.id)
-                    showTimePickerDialog = false
-                    alarmToEdit = null
-                }
-            } else null,
-            timePickerState = timePickerState
+            onDelete =
+                if (alarmToEdit != null) {
+                    {
+                        alarmViewModel.deleteAlarm(alarmToEdit!!.id)
+                        showTimePickerDialog = false
+                        alarmToEdit = null
+                    }
+                } else null,
+            timePickerState = timePickerState,
         )
     }
 }
@@ -181,42 +186,37 @@ fun AlarmRow(
     onToggle: (Boolean) -> Unit,
     onClick: () -> Unit,
     onTimeClick: () -> Unit,
-    onRepeatDaysChange: (Set<Int>) -> Unit
+    onRepeatDaysChange: (Set<Int>) -> Unit,
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
+    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = String.format(Locale.getDefault(), "%02d:%02d", alarm.hour, alarm.minute),
+                    text =
+                        String.format(Locale.getDefault(), "%02d:%02d", alarm.hour, alarm.minute),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable(onClick = onTimeClick)
+                    modifier = Modifier.clickable(onClick = onTimeClick),
                 )
                 Column(horizontalAlignment = Alignment.End) {
                     Icon(
-                        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                        contentDescription = if (expanded) "Collapse" else "Expand"
+                        imageVector =
+                            if (expanded) Icons.Filled.KeyboardArrowUp
+                            else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
                     )
-                    Switch(
-                        checked = alarm.isActive,
-                        onCheckedChange = onToggle
-                    )
+                    Switch(checked = alarm.isActive, onCheckedChange = onToggle)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = formatRepeatDays(alarm.repeatDays, alarm.hour, alarm.minute),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             if (expanded) {
@@ -231,7 +231,7 @@ fun AlarmRow(
                             newDays.add(day)
                         }
                         onRepeatDaysChange(newDays)
-                    }
+                    },
                 )
             }
         }
@@ -240,35 +240,38 @@ fun AlarmRow(
 
 @Composable
 fun DaySelector(selectedDays: Set<Int>, onDayClick: (Int) -> Unit) {
-    val days = listOf(
-        "S" to Calendar.SUNDAY,
-        "M" to Calendar.MONDAY,
-        "T" to Calendar.TUESDAY,
-        "W" to Calendar.WEDNESDAY,
-        "T" to Calendar.THURSDAY,
-        "F" to Calendar.FRIDAY,
-        "S" to Calendar.SATURDAY
-    )
+    val days =
+        listOf(
+            "S" to Calendar.SUNDAY,
+            "M" to Calendar.MONDAY,
+            "T" to Calendar.TUESDAY,
+            "W" to Calendar.WEDNESDAY,
+            "T" to Calendar.THURSDAY,
+            "F" to Calendar.FRIDAY,
+            "S" to Calendar.SATURDAY,
+        )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceAround
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
         days.forEach { (label, day) ->
             val isSelected = selectedDays.contains(day)
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), CircleShape)
-                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                    .clickable { onDayClick(day) },
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier.size(40.dp)
+                        .clip(CircleShape)
+                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), CircleShape)
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else Color.Transparent
+                        )
+                        .clickable { onDayClick(day) },
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = label,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
+                    color =
+                        if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
                 )
             }
         }
@@ -278,29 +281,31 @@ fun DaySelector(selectedDays: Set<Int>, onDayClick: (Int) -> Unit) {
 fun formatRepeatDays(days: Set<Int>, hour: Int, minute: Int): String {
     if (days.isEmpty()) {
         val now = Calendar.getInstance()
-        val alarmTime = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
+        val alarmTime =
+            Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
         return if (alarmTime.after(now)) "Today" else "Tomorrow"
     }
     if (days.size == 7) return "Every day"
 
     val sortedDays = days.toSortedSet()
-    val dayNames = sortedDays.map {
-        when (it) {
-            Calendar.SUNDAY -> "Sun"
-            Calendar.MONDAY -> "Mon"
-            Calendar.TUESDAY -> "Tue"
-            Calendar.WEDNESDAY -> "Wed"
-            Calendar.THURSDAY -> "Thu"
-            Calendar.FRIDAY -> "Fri"
-            Calendar.SATURDAY -> "Sat"
-            else -> ""
+    val dayNames =
+        sortedDays.map {
+            when (it) {
+                Calendar.SUNDAY -> "Sun"
+                Calendar.MONDAY -> "Mon"
+                Calendar.TUESDAY -> "Tue"
+                Calendar.WEDNESDAY -> "Wed"
+                Calendar.THURSDAY -> "Thu"
+                Calendar.FRIDAY -> "Fri"
+                Calendar.SATURDAY -> "Sat"
+                else -> ""
+            }
         }
-    }
     return dayNames.joinToString(", ")
 }
 
@@ -310,7 +315,7 @@ fun TimePickerDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     timePickerState: TimePickerState,
-    onDelete: (() -> Unit)? = null
+    onDelete: (() -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -330,21 +335,22 @@ fun TimePickerDialog(
         confirmButton = {
             Row(
                 horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
                 Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = onConfirm) {
-                    Text("Set")
-                }
+                TextButton(onClick = onConfirm) { Text("Set") }
             }
-        }
+        },
     )
 }
 
-private fun showSetAlarmToast(context: Context, hour: Int, minute: Int, repeatDays: Set<Int> = emptySet()) {
+private fun showSetAlarmToast(
+    context: Context,
+    hour: Int,
+    minute: Int,
+    repeatDays: Set<Int> = emptySet(),
+) {
     val scheduledTimeMillis = calculateNextTrigger(hour, minute, repeatDays)
 
     val now = Calendar.getInstance()
@@ -374,12 +380,13 @@ private fun showSetAlarmToast(context: Context, hour: Int, minute: Int, repeatDa
 
 private fun calculateNextTrigger(hour: Int, minute: Int, repeatDays: Set<Int>): Long {
     val now = Calendar.getInstance()
-    val alarmTime = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, hour)
-        set(Calendar.MINUTE, minute)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
+    val alarmTime =
+        Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
 
     if (repeatDays.isEmpty()) {
         if (alarmTime.before(now)) {
@@ -390,19 +397,18 @@ private fun calculateNextTrigger(hour: Int, minute: Int, repeatDays: Set<Int>): 
 
     // Find the next valid trigger time
     for (i in 0 until 7) {
-        val potentialNextDay = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_MONTH, i)
-        }
+        val potentialNextDay = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, i) }
         val dayOfWeek = potentialNextDay[Calendar.DAY_OF_WEEK]
 
         if (dayOfWeek in repeatDays) {
-            val triggerTime = Calendar.getInstance().apply {
-                time = potentialNextDay.time
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
+            val triggerTime =
+                Calendar.getInstance().apply {
+                    time = potentialNextDay.time
+                    set(Calendar.HOUR_OF_DAY, hour)
+                    set(Calendar.MINUTE, minute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
             if (triggerTime.after(now)) {
                 return triggerTime.timeInMillis
             }
@@ -417,13 +423,14 @@ private fun calculateNextTrigger(hour: Int, minute: Int, repeatDays: Set<Int>): 
         }
     }
 
-    val nextWeekAlarm = Calendar.getInstance().apply {
-        add(Calendar.WEEK_OF_YEAR, 1)
-        set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-        set(Calendar.HOUR_OF_DAY, hour)
-        set(Calendar.MINUTE, minute)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
+    val nextWeekAlarm =
+        Calendar.getInstance().apply {
+            add(Calendar.WEEK_OF_YEAR, 1)
+            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
     return nextWeekAlarm.timeInMillis
-} 
+}

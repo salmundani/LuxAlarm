@@ -23,4 +23,4 @@ class LuxAlarmApplication : Application() {
         super.onCreate()
         AppContainer.initialize(this)
     }
-} 
+}

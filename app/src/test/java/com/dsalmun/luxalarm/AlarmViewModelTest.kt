@@ -35,7 +35,6 @@ import org.junit.Test
 
 @ExperimentalCoroutinesApi
 class AlarmViewModelTest {
-
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var viewModel: AlarmViewModel
     private lateinit var fakeRepository: FakeAlarmRepository
@@ -60,7 +59,7 @@ class AlarmViewModelTest {
 
         viewModel.addAlarm(hour, minute)
         testDispatcher.scheduler.advanceUntilIdle()
-        
+
         assertEquals(1, fakeRepository.addAlarmCallCount)
     }
 
@@ -71,15 +70,14 @@ class AlarmViewModelTest {
         fakeRepository.setShouldSucceed(false)
 
         val collectedEvents = mutableListOf<AlarmViewModel.Event>()
-        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
-            viewModel.events.collect {
-                collectedEvents.add(it)
+        val job =
+            launch(UnconfinedTestDispatcher(testScheduler)) {
+                viewModel.events.collect { collectedEvents.add(it) }
             }
-        }
 
         viewModel.addAlarm(hour, minute)
         testDispatcher.scheduler.advanceUntilIdle()
-        
+
         assertEquals(1, collectedEvents.size)
         assertEquals(AlarmViewModel.Event.ShowPermissionError, collectedEvents[0])
 
@@ -136,13 +134,11 @@ class AlarmViewModelTest {
         val fakeAlarms = listOf(AlarmItem(id = 1, hour = 8, minute = 0))
         val newViewModel = AlarmViewModel(fakeRepository)
 
-        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
-            newViewModel.alarms.collect {}
-        }
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) { newViewModel.alarms.collect {} }
 
         fakeRepository.emit(fakeAlarms)
         testDispatcher.scheduler.advanceUntilIdle()
-        
+
         assertEquals(fakeAlarms, newViewModel.alarms.value)
 
         job.cancel()
@@ -150,7 +146,6 @@ class AlarmViewModelTest {
 }
 
 class FakeAlarmRepository : IAlarmRepository {
-    
     private val alarmsFlow = MutableStateFlow<List<AlarmItem>>(emptyList())
     private var shouldSucceed = true
 
@@ -163,14 +158,12 @@ class FakeAlarmRepository : IAlarmRepository {
     fun setShouldSucceed(succeed: Boolean) {
         shouldSucceed = succeed
     }
-    
+
     suspend fun emit(alarms: List<AlarmItem>) {
         alarmsFlow.emit(alarms)
     }
 
-    override fun getAllAlarms(): Flow<List<AlarmItem>> {
-        return alarmsFlow
-    }
+    override fun getAllAlarms(): Flow<List<AlarmItem>> = alarmsFlow
 
     override suspend fun addAlarm(hour: Int, minute: Int): Boolean {
         addAlarmCallCount++
@@ -198,4 +191,4 @@ class FakeAlarmRepository : IAlarmRepository {
     override suspend fun rescheduleAlarmAfterPlaying(alarmId: Int) {
         // Not implemented for this fake
     }
-} 
+}

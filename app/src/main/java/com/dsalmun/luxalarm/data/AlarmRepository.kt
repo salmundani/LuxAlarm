@@ -23,21 +23,21 @@ import kotlinx.coroutines.flow.Flow
 class AlarmRepository(
     private val alarmDao: AlarmDao,
     private val alarmScheduler: AlarmScheduler,
-    private val context: Context
+    private val context: Context,
 ) : IAlarmRepository {
-
     override fun getAllAlarms(): Flow<List<AlarmItem>> = alarmDao.getAllAlarms()
 
     override suspend fun addAlarm(hour: Int, minute: Int): Boolean {
         val newAlarm = AlarmItem(hour = hour, minute = minute)
         val newId = alarmDao.insert(newAlarm)
 
-        if (!alarmScheduler.scheduleExactAlarmAt(
+        if (
+            !alarmScheduler.scheduleExactAlarmAt(
                 context,
                 newAlarm.hour,
                 newAlarm.minute,
                 newId.toInt(),
-                newAlarm.repeatDays
+                newAlarm.repeatDays,
             )
         ) {
             alarmDao.delete(newAlarm.copy(id = newId.toInt()))
@@ -52,7 +52,15 @@ class AlarmRepository(
         alarmDao.update(updatedAlarm)
 
         if (isActive) {
-            if (!alarmScheduler.scheduleExactAlarmAt(context, alarm.hour, alarm.minute, alarm.id, alarm.repeatDays)) {
+            if (
+                !alarmScheduler.scheduleExactAlarmAt(
+                    context,
+                    alarm.hour,
+                    alarm.minute,
+                    alarm.id,
+                    alarm.repeatDays,
+                )
+            ) {
                 // Permission denied - revert the change and signal failure
                 alarmDao.update(alarm.copy(isActive = false))
                 return false
@@ -68,7 +76,15 @@ class AlarmRepository(
         val updatedAlarm = alarm.copy(hour = hour, minute = minute, isActive = true)
         alarmDao.update(updatedAlarm)
 
-        if (!alarmScheduler.scheduleExactAlarmAt(context, updatedAlarm.hour, updatedAlarm.minute, updatedAlarm.id, updatedAlarm.repeatDays)) {
+        if (
+            !alarmScheduler.scheduleExactAlarmAt(
+                context,
+                updatedAlarm.hour,
+                updatedAlarm.minute,
+                updatedAlarm.id,
+                updatedAlarm.repeatDays,
+            )
+        ) {
             // Permission denied - revert the change and signal failure
             alarmDao.update(alarm.copy(isActive = false))
             return false
@@ -94,11 +110,11 @@ class AlarmRepository(
                 updatedAlarm.hour,
                 updatedAlarm.minute,
                 updatedAlarm.id,
-                updatedAlarm.repeatDays
+                updatedAlarm.repeatDays,
             )
         }
     }
-    
+
     override suspend fun rescheduleAlarmAfterPlaying(alarmId: Int) {
         val alarm = alarmDao.getAlarmById(alarmId)
         if (alarm != null) {
@@ -107,8 +123,8 @@ class AlarmRepository(
                 alarm.hour,
                 alarm.minute,
                 alarm.id,
-                alarm.repeatDays
+                alarm.repeatDays,
             )
         }
     }
-} 
+}

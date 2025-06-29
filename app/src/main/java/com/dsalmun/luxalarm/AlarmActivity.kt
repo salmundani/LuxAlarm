@@ -46,16 +46,16 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class AlarmActivity : ComponentActivity(), SensorEventListener {
-    
+
     private var alarmId: Int = -1
     private lateinit var sensorManager: SensorManager
     private var lightSensor: Sensor? = null
     private var currentLightLevel by mutableFloatStateOf(0f)
     private val requiredLightLevel = 50f
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         alarmId = intent.getIntExtra("alarm_id", -1)
         setupScreenWake()
         setupLightSensor()
@@ -65,62 +65,64 @@ class AlarmActivity : ComponentActivity(), SensorEventListener {
                 AlarmRingingScreen(
                     currentLightLevel = currentLightLevel,
                     requiredLightLevel = requiredLightLevel,
-                    onStopAlarm = { stopAlarm() }
+                    onStopAlarm = { stopAlarm() },
                 )
             }
         }
         setupFullscreen()
     }
-    
+
     private fun setupLightSensor() {
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
     }
-    
+
     override fun onResume() {
         super.onResume()
         lightSensor?.let { sensor ->
             sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
         }
     }
-    
+
     override fun onPause() {
         super.onPause()
         sensorManager.unregisterListener(this)
     }
-    
+
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type == Sensor.TYPE_LIGHT) {
             currentLightLevel = event.values[0]
         }
     }
-    
+
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
         // No action needed for light sensor accuracy changes
     }
-    
+
     private fun setupScreenWake() {
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
-    
+
     private fun setupFullscreen() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.decorView.post {
                 window.insetsController?.let { controller ->
                     controller.hide(WindowInsets.Type.statusBars())
-                    controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    controller.systemBarsBehavior =
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 }
             }
         }
     }
-    
+
     private fun stopAlarm() {
-        val stopIntent = Intent(this, AlarmService::class.java).apply {
-            action = AlarmService.ACTION_STOP_ALARM
-            putExtra("alarm_id", alarmId)
-        }
+        val stopIntent =
+            Intent(this, AlarmService::class.java).apply {
+                action = AlarmService.ACTION_STOP_ALARM
+                putExtra("alarm_id", alarmId)
+            }
         startService(stopIntent)
         finish()
     }
@@ -130,37 +132,35 @@ class AlarmActivity : ComponentActivity(), SensorEventListener {
 fun AlarmRingingScreen(
     currentLightLevel: Float,
     requiredLightLevel: Float,
-    onStopAlarm: () -> Unit
+    onStopAlarm: () -> Unit,
 ) {
-    val currentTime = remember {
-        SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-    }
+    val currentTime = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
     val currentDate = remember {
         SimpleDateFormat("EEEE, MMMM dd", Locale.getDefault()).format(Date())
     }
-    val greeting = remember {
-        getTimeBasedGreeting()
-    }
+    val greeting = remember { getTimeBasedGreeting() }
 
-    val gradientColors = listOf(
-        Color(0xFF6366F1), // Soft indigo
-        Color(0xFF8B5CF6), // Soft purple
-        Color(0xFFA855F7)  // Light purple
-    )
+    val gradientColors =
+        listOf(
+            Color(0xFF6366F1), // Soft indigo
+            Color(0xFF8B5CF6), // Soft purple
+            Color(0xFFA855F7), // Light purple
+        )
 
     val isButtonEnabled = currentLightLevel >= requiredLightLevel
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = gradientColors,
-                    startY = 0f,
-                    endY = Float.POSITIVE_INFINITY
-                )
-            ),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier.fillMaxSize()
+                .background(
+                    brush =
+                        Brush.verticalGradient(
+                            colors = gradientColors,
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY,
+                        )
+                ),
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -182,7 +182,7 @@ private fun TimeDisplay(greeting: String, currentDate: String, currentTime: Stri
             fontSize = 32.sp,
             fontWeight = FontWeight.Light,
             color = Color.White.copy(alpha = 0.9f),
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -192,7 +192,7 @@ private fun TimeDisplay(greeting: String, currentDate: String, currentTime: Stri
             fontSize = 16.sp,
             fontWeight = FontWeight.Normal,
             color = Color.White.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -202,7 +202,7 @@ private fun TimeDisplay(greeting: String, currentDate: String, currentTime: Stri
             fontSize = 64.sp,
             fontWeight = FontWeight.Light,
             color = Color.White,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -211,39 +211,37 @@ private fun TimeDisplay(greeting: String, currentDate: String, currentTime: Stri
 private fun LightSensorIndicator(
     currentLightLevel: Float,
     requiredLightLevel: Float,
-    isButtonEnabled: Boolean
+    isButtonEnabled: Boolean,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth(0.8f)
-            .padding(bottom = 24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+        modifier = Modifier.fillMaxWidth(0.8f).padding(bottom = 24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             Text(
                 text = "Light Level",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.White.copy(alpha = 0.7f)
+                color = Color.White.copy(alpha = 0.7f),
             )
             Text(
                 text = "${currentLightLevel.toInt()} lx",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isButtonEnabled) Color(0xFF10B981) else Color.White
+                color = if (isButtonEnabled) Color(0xFF10B981) else Color.White,
             )
             Text(
-                text = if (isButtonEnabled) "Bright enough!" else "Need ${requiredLightLevel.toInt()} lx minimum",
+                text =
+                    if (isButtonEnabled) "Bright enough!"
+                    else "Need ${requiredLightLevel.toInt()} lx minimum",
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             if (!isButtonEnabled) {
                 Text(
@@ -251,7 +249,7 @@ private fun LightSensorIndicator(
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.8f),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
@@ -263,26 +261,29 @@ private fun AlarmControlButton(isButtonEnabled: Boolean, onStopAlarm: () -> Unit
     ElevatedButton(
         onClick = onStopAlarm,
         enabled = isButtonEnabled,
-        modifier = Modifier
-            .fillMaxWidth(0.6f)
-            .height(56.dp),
+        modifier = Modifier.fillMaxWidth(0.6f).height(56.dp),
         shape = RoundedCornerShape(28.dp),
-        colors = ButtonDefaults.elevatedButtonColors(
-            containerColor = if (isButtonEnabled) Color.White.copy(alpha = 0.95f) else Color.Gray.copy(alpha = 0.5f),
-            contentColor = if (isButtonEnabled) Color(0xFF6366F1) else Color.White.copy(alpha = 0.6f),
-            disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
-            disabledContentColor = Color.White.copy(alpha = 0.4f)
-        ),
-        elevation = ButtonDefaults.elevatedButtonElevation(
-            defaultElevation = if (isButtonEnabled) 8.dp else 2.dp,
-            pressedElevation = if (isButtonEnabled) 12.dp else 2.dp,
-            disabledElevation = 0.dp
-        )
+        colors =
+            ButtonDefaults.elevatedButtonColors(
+                containerColor =
+                    if (isButtonEnabled) Color.White.copy(alpha = 0.95f)
+                    else Color.Gray.copy(alpha = 0.5f),
+                contentColor =
+                    if (isButtonEnabled) Color(0xFF6366F1) else Color.White.copy(alpha = 0.6f),
+                disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
+                disabledContentColor = Color.White.copy(alpha = 0.4f),
+            ),
+        elevation =
+            ButtonDefaults.elevatedButtonElevation(
+                defaultElevation = if (isButtonEnabled) 8.dp else 2.dp,
+                pressedElevation = if (isButtonEnabled) 12.dp else 2.dp,
+                disabledElevation = 0.dp,
+            ),
     ) {
         Text(
             text = if (isButtonEnabled) "Turn Off Alarm" else "Need More Light",
             fontSize = 18.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
         )
     }
 }
@@ -290,11 +291,11 @@ private fun AlarmControlButton(isButtonEnabled: Boolean, onStopAlarm: () -> Unit
 private fun getTimeBasedGreeting(): String {
     val calendar = Calendar.getInstance()
     val hour = calendar[Calendar.HOUR_OF_DAY]
-    
+
     return when (hour) {
         in 5..11 -> "Good Morning"
-        in 12..17 -> "Good Afternoon" 
+        in 12..17 -> "Good Afternoon"
         in 18..21 -> "Good Evening"
         else -> "Time to Wake Up" // Late night/early morning (22-4)
     }
-} 
+}

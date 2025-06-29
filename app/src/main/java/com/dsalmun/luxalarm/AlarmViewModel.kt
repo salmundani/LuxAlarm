@@ -23,18 +23,20 @@ import com.dsalmun.luxalarm.data.AlarmItem
 import com.dsalmun.luxalarm.data.IAlarmRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class AlarmViewModel(private val repository: IAlarmRepository) : ViewModel() {
-    val alarms: StateFlow<List<AlarmItem>> = repository.getAllAlarms()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    val alarms: StateFlow<List<AlarmItem>> =
+        repository
+            .getAllAlarms()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList(),
+            )
 
     private val _events = MutableSharedFlow<Event>()
     val events = _events.asSharedFlow()
@@ -52,10 +54,12 @@ class AlarmViewModel(private val repository: IAlarmRepository) : ViewModel() {
     fun toggleAlarm(alarmId: Int, isActive: Boolean) {
         viewModelScope.launch {
             if (repository.toggleAlarm(alarmId, isActive)) {
-                if(isActive) {
+                if (isActive) {
                     val alarm = alarms.value.find { it.id == alarmId }
                     if (alarm != null) {
-                        _events.emit(Event.ShowAlarmSetMessage(alarm.hour, alarm.minute, alarm.repeatDays))
+                        _events.emit(
+                            Event.ShowAlarmSetMessage(alarm.hour, alarm.minute, alarm.repeatDays)
+                        )
                     }
                 }
             } else {
@@ -68,7 +72,9 @@ class AlarmViewModel(private val repository: IAlarmRepository) : ViewModel() {
         viewModelScope.launch {
             if (repository.updateAlarmTime(alarmId, hour, minute)) {
                 val alarm = alarms.value.find { it.id == alarmId }
-                _events.emit(Event.ShowAlarmSetMessage(hour, minute, alarm?.repeatDays ?: emptySet()))
+                _events.emit(
+                    Event.ShowAlarmSetMessage(hour, minute, alarm?.repeatDays ?: emptySet())
+                )
             } else {
                 _events.emit(Event.ShowPermissionError)
             }
@@ -76,9 +82,7 @@ class AlarmViewModel(private val repository: IAlarmRepository) : ViewModel() {
     }
 
     fun deleteAlarm(alarmId: Int) {
-        viewModelScope.launch {
-            repository.deleteAlarm(alarmId)
-        }
+        viewModelScope.launch { repository.deleteAlarm(alarmId) }
     }
 
     fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>) {
@@ -92,7 +96,9 @@ class AlarmViewModel(private val repository: IAlarmRepository) : ViewModel() {
     }
 
     sealed class Event {
-        data class ShowAlarmSetMessage(val hour: Int, val minute: Int, val repeatDays: Set<Int>) : Event()
+        data class ShowAlarmSetMessage(val hour: Int, val minute: Int, val repeatDays: Set<Int>) :
+            Event()
+
         data object ShowPermissionError : Event()
     }
 }
@@ -105,4 +111,4 @@ class AlarmViewModelFactory : ViewModelProvider.Factory {
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
-} 
+}

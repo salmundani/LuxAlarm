@@ -11,5 +11,6 @@ spotless {
     kotlin {
         target("app/src/**/*.kt")
         licenseHeaderFile(rootProject.file("config/license-header.txt"))
+        ktfmt().kotlinlangStyle()
     }
 }

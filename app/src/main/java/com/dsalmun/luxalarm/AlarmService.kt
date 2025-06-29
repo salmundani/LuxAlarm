@@ -22,11 +22,11 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.os.Build
 import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,12 +48,10 @@ class AlarmService : Service() {
         private const val ALARM_PLAYING_PREF = "alarm_playing"
     }
 
-    override fun onBind(intent: Intent?): IBinder {
-        return binder
-    }
+    override fun onBind(intent: Intent?): IBinder = binder
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return when (intent?.action) {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
+        when (intent?.action) {
             ACTION_STOP_ALARM -> {
                 stopAlarm()
                 START_NOT_STICKY
@@ -63,37 +61,38 @@ class AlarmService : Service() {
                 START_STICKY
             }
         }
-    }
 
     private fun startAlarm() {
         try {
             // Start playing alarm sound
             val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(applicationContext, alarmUri)
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .build()
-                )
-                isLooping = true
-                prepare()
-                start()
-            }
+            mediaPlayer =
+                MediaPlayer().apply {
+                    setDataSource(applicationContext, alarmUri)
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .build()
+                    )
+                    isLooping = true
+                    prepare()
+                    start()
+                }
 
             // Start vibration
-            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vibratorManager.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                getSystemService(VIBRATOR_SERVICE) as Vibrator
-            }
+            vibrator =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val vibratorManager =
+                        getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    getSystemService(VIBRATOR_SERVICE) as Vibrator
+                }
 
             val vibrationPattern = longArrayOf(0, 1000, 500, 1000, 500)
             vibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0))
-
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -101,7 +100,7 @@ class AlarmService : Service() {
 
     private fun stopAlarm() {
         dismissNotification()
-        
+
         mediaPlayer?.apply {
             if (isPlaying) {
                 stop()
@@ -114,9 +113,9 @@ class AlarmService : Service() {
         vibrator = null
 
         val sharedPrefs = getSharedPreferences("luxalarm_prefs", MODE_PRIVATE)
-        
+
         val playingAlarmIds = sharedPrefs.getStringSet("alarm_ids", emptySet()) ?: emptySet()
-        
+
         sharedPrefs.edit {
             putBoolean(ALARM_PLAYING_PREF, false)
                 .putStringSet("alarm_ids", emptySet()) // Clear the playing alarms
@@ -136,7 +135,8 @@ class AlarmService : Service() {
     }
 
     private fun dismissNotification() {
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val notificationManager =
+            getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
         notificationManager.cancel(AlarmReceiver.ALARM_NOTIFICATION_ID)
     }
 
@@ -144,4 +144,4 @@ class AlarmService : Service() {
         super.onDestroy()
         stopAlarm()
     }
-} 
+}

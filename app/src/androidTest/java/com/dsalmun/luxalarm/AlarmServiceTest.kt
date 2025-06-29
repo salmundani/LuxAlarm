@@ -1,13 +1,34 @@
+/*
+ * This file is part of Lux Alarm, authored by Daniel Salmun.
+ *
+ * Lux Alarm is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Lux Alarm is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Lux Alarm.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.dsalmun.luxalarm
 
 import android.content.Context
 import android.content.Intent
+import android.os.IBinder
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.filters.SmallTest
+import androidx.test.filters.MediumTest
 import androidx.test.rule.ServiceTestRule
 import com.dsalmun.luxalarm.data.AlarmItem
 import com.dsalmun.luxalarm.data.IAlarmRepository
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,14 +36,10 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
-@SmallTest
+@MediumTest
 class AlarmServiceTest {
-
-    @get:Rule
-    val serviceRule = ServiceTestRule()
+    @get:Rule val serviceRule = ServiceTestRule()
 
     private lateinit var context: Context
     private lateinit var fakeRepository: FakeAlarmRepository
@@ -41,27 +58,51 @@ class AlarmServiceTest {
     }
 
     @Test
-    fun stopAlarm_callsRepositoryToReschedule() {
+    fun stopAlarm_callsRepositoryToReschedule_andClearsSharedPrefs() {
         val alarmId = 123
         val sharedPrefs = context.getSharedPreferences("luxalarm_prefs", Context.MODE_PRIVATE)
-        sharedPrefs.edit()
-            .putStringSet("alarm_ids", setOf(alarmId.toString()))
-            .commit()
+        sharedPrefs.edit().putStringSet("alarm_ids", setOf(alarmId.toString())).commit()
 
-        val intent = Intent(context, AlarmService::class.java).apply {
-            action = AlarmService.ACTION_STOP_ALARM
-        }
+        val intent =
+            Intent(context, AlarmService::class.java).apply {
+                action = AlarmService.ACTION_STOP_ALARM
+            }
         serviceRule.startService(intent)
         val success = fakeRepository.latch.await(5, TimeUnit.SECONDS)
 
-        assertTrue(success)
-        assertEquals(fakeRepository.rescheduleAlarmAfterPlayingCallCount, 1)
-        assertEquals(fakeRepository.rescheduledAlarmId, alarmId)
+        assertTrue(success, "Latch did not count down in time")
+        assertEquals(1, fakeRepository.rescheduleAlarmAfterPlayingCallCount)
+        assertEquals(alarmId, fakeRepository.rescheduledAlarmId)
+
+        val playingAlarms = sharedPrefs.getStringSet("alarm_ids", null)
+        assertNotNull(playingAlarms)
+        assertTrue(playingAlarms.isEmpty(), "Alarm IDs should be cleared from SharedPreferences")
+    }
+
+    @Test
+    fun stopAlarm_withNoPlayingAlarms_doesNotCallRepository() {
+        val intent =
+            Intent(context, AlarmService::class.java).apply {
+                action = AlarmService.ACTION_STOP_ALARM
+            }
+        serviceRule.startService(intent)
+
+        val wasCalled = fakeRepository.latch.await(2, TimeUnit.SECONDS)
+
+        assertFalse(wasCalled, "Repository method should not have been called")
+        assertEquals(0, fakeRepository.rescheduleAlarmAfterPlayingCallCount)
+    }
+
+    @Test
+    fun serviceBinds() {
+        val intent = Intent(context, AlarmService::class.java)
+        val binder: IBinder = serviceRule.bindService(intent)
+        val service = (binder as AlarmService.LocalBinder).getService()
+        assertNotNull(service)
     }
 }
 
 class FakeAlarmRepository : IAlarmRepository {
-
     private val alarmsFlow = MutableStateFlow<List<AlarmItem>>(emptyList())
     var rescheduleAlarmAfterPlayingCallCount = 0
     var rescheduledAlarmId = -1
@@ -84,4 +125,4 @@ class FakeAlarmRepository : IAlarmRepository {
         rescheduledAlarmId = alarmId
         latch.countDown()
     }
-} 
+}

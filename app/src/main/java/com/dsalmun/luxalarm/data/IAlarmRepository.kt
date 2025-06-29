@@ -20,10 +20,16 @@ import kotlinx.coroutines.flow.Flow
 
 interface IAlarmRepository {
     fun getAllAlarms(): Flow<List<AlarmItem>>
+
     suspend fun addAlarm(hour: Int, minute: Int): Boolean
+
     suspend fun toggleAlarm(alarmId: Int, isActive: Boolean): Boolean
+
     suspend fun updateAlarmTime(alarmId: Int, hour: Int, minute: Int): Boolean
+
     suspend fun deleteAlarm(alarmId: Int)
+
     suspend fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>)
+
     suspend fun rescheduleAlarmAfterPlaying(alarmId: Int)
-} 
+}
