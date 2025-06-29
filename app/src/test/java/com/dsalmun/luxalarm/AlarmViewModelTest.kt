@@ -53,7 +53,7 @@ class AlarmViewModelTest {
     }
 
     @Test
-    fun `addAlarm calls repository and handles success`() = runTest {
+    fun addAlarm_callsRepositoryAndHandlesSuccess() = runTest {
         val hour = 6
         val minute = 30
         fakeRepository.setShouldSucceed(true)
@@ -65,7 +65,7 @@ class AlarmViewModelTest {
     }
 
     @Test
-    fun `addAlarm calls repository and emits event on permission error`() = runTest {
+    fun addAlarm_callsRepositoryAndEmitsEventOnPermissionError() = runTest {
         val hour = 6
         val minute = 30
         fakeRepository.setShouldSucceed(false)
@@ -88,7 +88,7 @@ class AlarmViewModelTest {
     }
 
     @Test
-    fun `toggleAlarm calls repository`() = runTest {
+    fun toggleAlarm_callsRepository() = runTest {
         val alarmId = 1
         val isActive = true
         fakeRepository.setShouldSucceed(true)
@@ -100,7 +100,7 @@ class AlarmViewModelTest {
     }
 
     @Test
-    fun `deleteAlarm calls repository`() = runTest {
+    fun deleteAlarm_callsRepository() = runTest {
         val alarmId = 1
         viewModel.deleteAlarm(alarmId)
         testDispatcher.scheduler.advanceUntilIdle()
@@ -108,7 +108,7 @@ class AlarmViewModelTest {
     }
 
     @Test
-    fun `updateAlarmTime calls repository`() = runTest {
+    fun updateAlarmTime_callsRepository() = runTest {
         val alarmId = 1
         val hour = 10
         val minute = 30
@@ -121,7 +121,7 @@ class AlarmViewModelTest {
     }
 
     @Test
-    fun `setRepeatDays calls repository`() = runTest {
+    fun setRepeatDays_callsRepository() = runTest {
         val alarmId = 1
         val repeatDays = setOf(1, 2, 3)
 
@@ -132,7 +132,7 @@ class AlarmViewModelTest {
     }
 
     @Test
-    fun `alarms state flow collects from repository`() = runTest {
+    fun alarms_stateFlowCollectsFromRepository() = runTest {
         val fakeAlarms = listOf(AlarmItem(id = 1, hour = 8, minute = 0))
         val newViewModel = AlarmViewModel(fakeRepository)
 

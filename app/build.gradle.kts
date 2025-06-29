@@ -47,7 +47,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -66,4 +65,8 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.test.core)
     testImplementation(kotlin("test"))
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(kotlin("test"))
+    androidTestImplementation(libs.androidx.rules)
 }

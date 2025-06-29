@@ -11,6 +11,7 @@ spotless = "7.0.4"
 junit = "4.13.2"
 kotlinxCoroutinesTest = "1.10.2"
 androidxTestCore = "1.6.1"
+rules = "1.6.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -30,6 +31,7 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
+androidx-rules = { group = "androidx.test", name = "rules", version.ref = "rules" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

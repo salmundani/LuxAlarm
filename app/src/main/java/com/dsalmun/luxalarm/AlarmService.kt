@@ -21,25 +21,36 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.os.Binder
 import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.os.Build
 import androidx.core.content.edit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val binder = LocalBinder()
+
+    inner class LocalBinder : Binder() {
+        fun getService(): AlarmService = this@AlarmService
+    }
 
     companion object {
         const val ACTION_STOP_ALARM = "com.dsalmun.luxalarm.STOP_ALARM"
-        const val ACTION_RESCHEDULE_ALARM = "com.dsalmun.luxalarm.RESCHEDULE_ALARM"
-        const val EXTRA_ALARM_ID = "alarm_id"
         private const val ALARM_PLAYING_PREF = "alarm_playing"
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent?): IBinder {
+        return binder
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return when (intent?.action) {
@@ -111,16 +122,13 @@ class AlarmService : Service() {
                 .putStringSet("alarm_ids", emptySet()) // Clear the playing alarms
         }
 
-        // Send broadcast to reschedule all alarms that were playing
+        // Reschedule all alarms that were playing
         playingAlarmIds.forEach { alarmIdString ->
             val alarmIdInt = alarmIdString.toIntOrNull()
             if (alarmIdInt != null) {
-                android.util.Log.d("AlarmService", "Broadcasting reschedule for alarm ID: $alarmIdInt")
-                val rescheduleIntent = Intent(ACTION_RESCHEDULE_ALARM).apply {
-                    putExtra(EXTRA_ALARM_ID, alarmIdInt)
-                    setPackage(packageName)
+                serviceScope.launch {
+                    AppContainer.repository.rescheduleAlarmAfterPlaying(alarmIdInt)
                 }
-                sendBroadcast(rescheduleIntent)
             }
         }
 

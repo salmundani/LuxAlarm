@@ -21,6 +21,6 @@ import android.app.Application
 class LuxAlarmApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        AppContainer.provide(this)
+        AppContainer.initialize(this)
     }
 } 
