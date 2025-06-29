@@ -10,6 +10,6 @@ plugins {
 spotless {
     kotlin {
         target("app/src/**/*.kt")
-        licenseHeaderFile(rootProject.file("license-header.txt"))
+        licenseHeaderFile(rootProject.file("config/license-header.txt"))
     }
 }
