@@ -39,6 +39,11 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
@@ -57,4 +62,8 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     debugImplementation(libs.androidx.ui.tooling)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(kotlin("test"))
 }

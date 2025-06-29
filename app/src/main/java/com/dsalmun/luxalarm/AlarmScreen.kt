@@ -46,15 +46,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
+fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewModelFactory())) {
     val context = LocalContext.current
     val alarms by alarmViewModel.alarms.collectAsState()
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var alarmToEdit by remember { mutableStateOf<AlarmItem?>(null) }
     var expandedAlarmId by remember { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(key1 = Unit) {
+        alarmViewModel.events.collectLatest { event ->
+            when(event) {
+                is AlarmViewModel.Event.ShowPermissionError -> {
+                    Toast.makeText(context, "Cannot schedule exact alarms. Please grant permission in settings.", Toast.LENGTH_SHORT).show()
+                }
+                is AlarmViewModel.Event.ShowAlarmSetMessage -> {
+                    showSetAlarmToast(context, event.hour, event.minute, event.repeatDays)
+                }
+            }
+        }
+    }
 
     val timePickerState = remember(alarmToEdit) {
         val calendar = Calendar.getInstance()
@@ -116,9 +130,6 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
                         expanded = expandedAlarmId == alarm.id,
                         onToggle = { isActive ->
                             alarmViewModel.toggleAlarm(alarm.id, isActive)
-                            if (isActive && AlarmScheduler.canScheduleExactAlarms(context)) {
-                                showSetAlarmToast(context, alarm.hour, alarm.minute, alarm.repeatDays)
-                            }
                         },
                         onClick = {
                             expandedAlarmId = if (expandedAlarmId == alarm.id) null else alarm.id
@@ -141,14 +152,8 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
             onConfirm = {
                 if (alarmToEdit != null) {
                     alarmViewModel.updateAlarmTime(alarmToEdit!!.id, timePickerState.hour, timePickerState.minute)
-                    if (AlarmScheduler.canScheduleExactAlarms(context)) {
-                        showSetAlarmToast(context, timePickerState.hour, timePickerState.minute, alarmToEdit!!.repeatDays)
-                    }
                 } else {
                     alarmViewModel.addAlarm(timePickerState.hour, timePickerState.minute)
-                    if (AlarmScheduler.canScheduleExactAlarms(context)) {
-                        showSetAlarmToast(context, timePickerState.hour, timePickerState.minute)
-                    }
                 }
                 showTimePickerDialog = false
                 alarmToEdit = null
@@ -167,90 +172,6 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
             timePickerState = timePickerState
         )
     }
-}
-
-private fun showSetAlarmToast(context: Context, hour: Int, minute: Int, repeatDays: Set<Int> = emptySet()) {
-    val scheduledTimeMillis = calculateNextTrigger(hour, minute, repeatDays)
-
-    val now = Calendar.getInstance()
-    val diffMillis = scheduledTimeMillis - now.timeInMillis
-    val totalMinutes = kotlin.math.ceil(diffMillis / (1000.0 * 60)).toInt()
-    val days = totalMinutes / (60 * 24)
-    val hours = (totalMinutes % (60 * 24)) / 60
-    val minutes = totalMinutes % 60
-
-    val timeParts = mutableListOf<String>()
-    if (days > 0) {
-        timeParts.add("$days ${if (days == 1) "day" else "days"}")
-    }
-    if (hours > 0) {
-        timeParts.add("$hours ${if (hours == 1) "hour" else "hours"}")
-    }
-    if (minutes > 0) {
-        timeParts.add("$minutes ${if (minutes == 1) "minute" else "minutes"}")
-    }
-    if (timeParts.isEmpty()) {
-        timeParts.add("less than a minute")
-    }
-
-    val toastMessage = "Alarm set for ${timeParts.joinToString(", ")} from now."
-    Toast.makeText(context, toastMessage, Toast.LENGTH_LONG).show()
-}
-
-private fun calculateNextTrigger(hour: Int, minute: Int, repeatDays: Set<Int>): Long {
-    val now = Calendar.getInstance()
-    val alarmTime = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, hour)
-        set(Calendar.MINUTE, minute)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
-
-    if (repeatDays.isEmpty()) {
-        if (alarmTime.before(now)) {
-            alarmTime.add(Calendar.DAY_OF_MONTH, 1) // schedule for next day if time has passed
-        }
-        return alarmTime.timeInMillis
-    }
-
-    // Find the next valid trigger time
-    for (i in 0 until 7) {
-        val potentialNextDay = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_MONTH, i)
-        }
-        val dayOfWeek = potentialNextDay[Calendar.DAY_OF_WEEK]
-
-        if (dayOfWeek in repeatDays) {
-            val triggerTime = Calendar.getInstance().apply {
-                time = potentialNextDay.time
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            if (triggerTime.after(now)) {
-                return triggerTime.timeInMillis
-            }
-        }
-    }
-
-    // If no time was found, it means the next alarm is next week. Find the first day of the week.
-    var firstDayOfWeek = 8
-    for (day in repeatDays) {
-        if (day < firstDayOfWeek) {
-            firstDayOfWeek = day
-        }
-    }
-
-    val nextWeekAlarm = Calendar.getInstance().apply {
-        add(Calendar.WEEK_OF_YEAR, 1)
-        set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-        set(Calendar.HOUR_OF_DAY, hour)
-        set(Calendar.MINUTE, minute)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
-    return nextWeekAlarm.timeInMillis
 }
 
 @Composable
@@ -421,4 +342,88 @@ fun TimePickerDialog(
             }
         }
     )
+}
+
+private fun showSetAlarmToast(context: Context, hour: Int, minute: Int, repeatDays: Set<Int> = emptySet()) {
+    val scheduledTimeMillis = calculateNextTrigger(hour, minute, repeatDays)
+
+    val now = Calendar.getInstance()
+    val diffMillis = scheduledTimeMillis - now.timeInMillis
+    val totalMinutes = kotlin.math.ceil(diffMillis / (1000.0 * 60)).toInt()
+    val days = totalMinutes / (60 * 24)
+    val hours = (totalMinutes % (60 * 24)) / 60
+    val minutes = totalMinutes % 60
+
+    val timeParts = mutableListOf<String>()
+    if (days > 0) {
+        timeParts.add("$days ${if (days == 1) "day" else "days"}")
+    }
+    if (hours > 0) {
+        timeParts.add("$hours ${if (hours == 1) "hour" else "hours"}")
+    }
+    if (minutes > 0) {
+        timeParts.add("$minutes ${if (minutes == 1) "minute" else "minutes"}")
+    }
+    if (timeParts.isEmpty()) {
+        timeParts.add("less than a minute")
+    }
+
+    val toastMessage = "Alarm set for ${timeParts.joinToString(", ")} from now."
+    Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
+}
+
+private fun calculateNextTrigger(hour: Int, minute: Int, repeatDays: Set<Int>): Long {
+    val now = Calendar.getInstance()
+    val alarmTime = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+
+    if (repeatDays.isEmpty()) {
+        if (alarmTime.before(now)) {
+            alarmTime.add(Calendar.DAY_OF_MONTH, 1) // schedule for next day if time has passed
+        }
+        return alarmTime.timeInMillis
+    }
+
+    // Find the next valid trigger time
+    for (i in 0 until 7) {
+        val potentialNextDay = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_MONTH, i)
+        }
+        val dayOfWeek = potentialNextDay[Calendar.DAY_OF_WEEK]
+
+        if (dayOfWeek in repeatDays) {
+            val triggerTime = Calendar.getInstance().apply {
+                time = potentialNextDay.time
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            if (triggerTime.after(now)) {
+                return triggerTime.timeInMillis
+            }
+        }
+    }
+
+    // If no time was found, it means the next alarm is next week. Find the first day of the week.
+    var firstDayOfWeek = 8
+    for (day in repeatDays) {
+        if (day < firstDayOfWeek) {
+            firstDayOfWeek = day
+        }
+    }
+
+    val nextWeekAlarm = Calendar.getInstance().apply {
+        add(Calendar.WEEK_OF_YEAR, 1)
+        set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    return nextWeekAlarm.timeInMillis
 } 
