@@ -13,7 +13,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
     
@@ -22,6 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
         private const val ALARM_HOUR_PREF = "alarm_hour"
         private const val ALARM_MINUTE_PREF = "alarm_minute"
         private const val ALARM_IDS_PREF = "alarm_ids"
+        private const val ALARM_CHANNEL_ID = "alarm_channel_id"
         const val ALARM_NOTIFICATION_ID = 1001
     }
     
@@ -31,8 +31,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val alarmHour = intent?.getIntExtra("alarm_hour", -1) ?: -1
         val alarmMinute = intent?.getIntExtra("alarm_minute", -1) ?: -1
         val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
-        val repeatDays = intent?.getIntegerArrayListExtra("repeat_days")?.toSet() ?: emptySet()
-        
+
         // Check if this is the first alarm for this time
         val isFirstAlarmForThisTime = !sharedPrefs.getBoolean(ALARM_PLAYING_PREF, false) ||
                                       sharedPrefs.getInt(ALARM_HOUR_PREF, -1) != alarmHour ||
@@ -73,8 +72,7 @@ class AlarmReceiver : BroadcastReceiver() {
             }
             context.startActivity(activityIntent)
             
-            val channelId = "alarm_channel_id"
-            createNotificationChannel(context, channelId)
+            createNotificationChannel(context)
 
             // Create a pending intent for the full screen intent
             val fullScreenIntent = Intent(context, AlarmActivity::class.java).apply {
@@ -88,7 +86,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val notification = NotificationCompat.Builder(context, channelId)
+            val notification = NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
                 .setContentTitle("Alarm Ringing")
                 .setContentText("Tap to open alarm screen")
@@ -110,11 +108,11 @@ class AlarmReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun createNotificationChannel(context: Context, channelId: String) {
+    private fun createNotificationChannel(context: Context) {
         val name = "Alarm notifications"
         val descriptionText = "Notifications for triggered alarms"
         val importance = NotificationManager.IMPORTANCE_HIGH
-        val channel = NotificationChannel(channelId, name, importance).apply {
+        val channel = NotificationChannel(ALARM_CHANNEL_ID, name, importance).apply {
             description = descriptionText
             setBypassDnd(true)
             enableVibration(true)

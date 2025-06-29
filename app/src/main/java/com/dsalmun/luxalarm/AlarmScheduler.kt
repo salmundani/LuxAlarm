@@ -17,28 +17,6 @@ object AlarmScheduler {
             true // Always allowed on older versions
         }
     }
-    
-    private fun scheduleExactAlarm(context: Context, triggerAtMillis: Long, requestCode: Int = 0, hour: Int? = null, minute: Int? = null): Boolean {
-        if (!canScheduleExactAlarms(context)) {
-            return false
-        }
-        
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
-            hour?.let { putExtra("alarm_hour", it) }
-            minute?.let { putExtra("alarm_minute", it) }
-            putExtra("alarm_id", requestCode)
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            requestCode,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-        return true
-    }
 
     fun scheduleExactAlarmAt(context: Context, hour: Int, minute: Int, requestCode: Int, repeatDays: Set<Int>): Boolean {
         val triggerAtMillis = calculateNextTrigger(hour, minute, repeatDays)
@@ -86,7 +64,7 @@ object AlarmScheduler {
             val potentialNextDay = Calendar.getInstance().apply {
                 add(Calendar.DAY_OF_MONTH, i)
             }
-            val dayOfWeek = potentialNextDay.get(Calendar.DAY_OF_WEEK)
+            val dayOfWeek = potentialNextDay[Calendar.DAY_OF_WEEK]
 
             if (dayOfWeek in repeatDays) {
                 val triggerTime = Calendar.getInstance().apply {

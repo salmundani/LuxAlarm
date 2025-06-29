@@ -202,7 +202,7 @@ private fun calculateNextTrigger(hour: Int, minute: Int, repeatDays: Set<Int>): 
         val potentialNextDay = Calendar.getInstance().apply {
             add(Calendar.DAY_OF_MONTH, i)
         }
-        val dayOfWeek = potentialNextDay.get(Calendar.DAY_OF_WEEK)
+        val dayOfWeek = potentialNextDay[Calendar.DAY_OF_WEEK]
 
         if (dayOfWeek in repeatDays) {
             val triggerTime = Calendar.getInstance().apply {
