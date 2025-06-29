@@ -33,7 +33,7 @@ import androidx.compose.foundation.border
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun AlarmScreen(modifier: Modifier = Modifier, alarmViewModel: AlarmViewModel = viewModel()) {
+fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel()) {
     val context = LocalContext.current
     val alarms by alarmViewModel.alarms.collectAsState()
     var showTimePickerDialog by remember { mutableStateOf(false) }
@@ -52,7 +52,7 @@ fun AlarmScreen(modifier: Modifier = Modifier, alarmViewModel: AlarmViewModel = 
     }
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -68,7 +68,7 @@ fun AlarmScreen(modifier: Modifier = Modifier, alarmViewModel: AlarmViewModel = 
         },
         topBar = {
             TopAppBar(
-                title = { Text("LuxAlarm") },
+                title = { Text("Lux Alarm") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.primary,
