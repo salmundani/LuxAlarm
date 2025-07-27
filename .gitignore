@@ -1,3 +1,5 @@
+fastlane_key.json
+
 # Gradle files
 .gradle/
 build/
