@@ -36,3 +36,4 @@ google-services.json
 *.hprof
 
 .env
+*.idsig
