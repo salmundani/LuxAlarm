@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,7 +51,10 @@ import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewModelFactory())) {
+fun AlarmScreen(
+    onSettingsClick: () -> Unit = {},
+    alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewModelFactory()),
+) {
     val context = LocalContext.current
     val alarms by alarmViewModel.alarms.collectAsState()
     var showTimePickerDialog by remember { mutableStateOf(false) }
@@ -102,6 +106,14 @@ fun AlarmScreen(alarmViewModel: AlarmViewModel = viewModel(factory = AlarmViewMo
         topBar = {
             TopAppBar(
                 title = { Text("Lux Alarm") },
+                actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings"
+                        )
+                    }
+                },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,

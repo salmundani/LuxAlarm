@@ -51,12 +51,13 @@ class AlarmActivity : ComponentActivity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var lightSensor: Sensor? = null
     private var currentLightLevel by mutableFloatStateOf(0f)
-    private val requiredLightLevel = 50f
+    private var requiredLightLevel by mutableFloatStateOf(SettingsManager.DEFAULT_LUX_LEVEL)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         alarmId = intent.getIntExtra("alarm_id", -1)
+        requiredLightLevel = AppContainer.settingsManager.getRequiredLuxLevel()
         setupScreenWake()
         setupLightSensor()
 
