@@ -1,21 +1,14 @@
-Are you tired of fighting the snooze button every morning? Do you hit 'dismiss' in a sleepy haze only to wake up late and frantic? It's time to change your relationship with your morning alarm and wake up for real!
+<b>Stop Oversleeping with Lux Alarm</b>
 
-Welcome to Lux Alarm, the revolutionary alarm clock designed to get you out of bed by using the one thing you can't ignore: light!
+Tired of hitting snooze and waking up late? Lux Alarm ensures you actually get out of bed by requiring light to silence the alarm.
 
-Our app has one simple, powerful rule: the alarm will not stop until your room is filled with light.
+<b>How it works</b>
 
-☀️ HOW IT WORKS
+To stop the alarm, you must get up and open your blinds or turn on the light. The app uses your phone's sensor to detect brightness; by the time the alarm turns off, you are already on your feet and ready to start your day.
 
-To silence the alarm, you have to get up, open the blinds to greet the day, or simply flip on your bedroom light switch. Lux Alarm uses your phone's light sensor to measure the brightness in the room, ensuring you can't cheat your way back to sleep. By the time the alarm is off, you're already on your feet and ready to conquer your day—no more accidental oversleeping!
+<b>Key Features</b>
 
-This isn't just an alarm; it's a new morning routine. Waking up with light helps to regulate your natural sleep cycle (your circadian rhythm), making you feel more energetic, less groggy, and ready for whatever comes your way.
-
-✨ FEATURES YOU'LL LOVE
-
-💡 Smart Light Detection: The core of our app! The alarm only deactivates when it detects a sufficient level of ambient light. It's your personal sunrise, on command.
-
-🎚️ Adjustable Sensitivity: Is it a dark, rainy morning? No problem! You can customize how much light is needed to turn off the alarm, so it works perfectly for you every single day, in any weather.
-
-🌙 Sleek & Simple Interface: A beautiful, clean, and intuitive design based on Material Design 3 that makes setting your alarm a pleasure. No clutter, no confusion—just the smartest way to wake up.
-
-Ready to transform your mornings from a stressful rush into a bright beginning? Stop sleeping in and start living brighter.
+• Smart Light Detection: Uses your phone's sensor to ensure the alarm only deactivates once your environment is bright.
+• Adjustable Sensitivity: Customize the required light level to account for gloomy weather or different room setups.
+• Modern Interface: A clean, intuitive design based on Material Design 3 for easy navigation.
+• Circadian Support: Waking up with light helps regulate your natural sleep cycle and reduces morning grogginess.
