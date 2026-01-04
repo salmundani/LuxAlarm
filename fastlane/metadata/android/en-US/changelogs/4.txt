@@ -1,0 +1,1 @@
+Settings view: now you can define the amount of lux needed to turn off alarm
