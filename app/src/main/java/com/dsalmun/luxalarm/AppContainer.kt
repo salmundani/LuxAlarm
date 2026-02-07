@@ -22,13 +22,19 @@ import com.dsalmun.luxalarm.data.AlarmRepository
 import com.dsalmun.luxalarm.data.IAlarmRepository
 
 object AppContainer {
-    private lateinit var database: AlarmDatabase
-    lateinit var repository: IAlarmRepository
+    @Volatile lateinit var database: AlarmDatabase
+
+    @Volatile lateinit var repository: IAlarmRepository
     lateinit var settingsManager: SettingsManager
 
+    @Volatile private var initialized = false
+
+    @Synchronized
     fun initialize(context: Context) {
+        if (initialized) return
         database = AlarmDatabase.getDatabase(context)
         repository = AlarmRepository(database.alarmDao(), AlarmScheduler, context)
         settingsManager = SettingsManager(context)
+        initialized = true
     }
 }
