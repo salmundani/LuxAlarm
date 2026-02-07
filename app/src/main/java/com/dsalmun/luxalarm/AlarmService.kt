@@ -27,7 +27,6 @@ import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,6 +35,7 @@ import kotlinx.coroutines.launch
 class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    private var alarmStopped = false
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val binder = LocalBinder()
 
@@ -45,7 +45,6 @@ class AlarmService : Service() {
 
     companion object {
         const val ACTION_STOP_ALARM = "com.dsalmun.luxalarm.STOP_ALARM"
-        private const val ALARM_PLAYING_PREF = "alarm_playing"
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -99,6 +98,9 @@ class AlarmService : Service() {
     }
 
     private fun stopAlarm() {
+        if (alarmStopped) return
+        alarmStopped = true
+
         dismissNotification()
 
         mediaPlayer?.apply {
@@ -112,23 +114,9 @@ class AlarmService : Service() {
         vibrator?.cancel()
         vibrator = null
 
-        val sharedPrefs = getSharedPreferences("luxalarm_prefs", MODE_PRIVATE)
-
-        val playingAlarmIds = sharedPrefs.getStringSet("alarm_ids", emptySet()) ?: emptySet()
-
-        sharedPrefs.edit {
-            putBoolean(ALARM_PLAYING_PREF, false)
-                .putStringSet("alarm_ids", emptySet()) // Clear the playing alarms
-        }
-
-        // Reschedule all alarms that were playing
-        playingAlarmIds.forEach { alarmIdString ->
-            val alarmIdInt = alarmIdString.toIntOrNull()
-            if (alarmIdInt != null) {
-                serviceScope.launch {
-                    AppContainer.repository.rescheduleAlarmAfterPlaying(alarmIdInt)
-                }
-            }
+        serviceScope.launch {
+            AppContainer.repository.clearRingingAlarm()
+            AppContainer.repository.scheduleNextAlarm()
         }
 
         stopSelf()

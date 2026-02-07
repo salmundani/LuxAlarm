@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
     private val requestExactAlarmPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             // Check if permission was granted after returning from settings
-            if (!AlarmScheduler.canScheduleExactAlarms(this)) {
+            if (!AppContainer.repository.canScheduleExactAlarms()) {
                 // TODO: User didn't grant permission. Show a dialog explaining why it's needed
             }
         }
@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
         }
 
         // Request exact alarm permission (Android 12+)
-        if (!AlarmScheduler.canScheduleExactAlarms(this)) {
+        if (!AppContainer.repository.canScheduleExactAlarms()) {
             requestExactAlarmPermission()
         }
     }

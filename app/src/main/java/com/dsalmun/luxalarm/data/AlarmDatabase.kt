@@ -21,8 +21,10 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [AlarmItem::class], version = 1, exportSchema = false)
+@Database(entities = [AlarmItem::class, RingingAlarm::class], version = 2, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
@@ -30,10 +32,20 @@ abstract class AlarmDatabase : RoomDatabase() {
     companion object {
         @Volatile private var Instance: AlarmDatabase? = null
 
+        private val MIGRATION_1_2 =
+            object : Migration(1, 2) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE ringing_alarm (id INTEGER NOT NULL PRIMARY KEY, hour INTEGER NOT NULL, minute INTEGER NOT NULL)"
+                    )
+                }
+            }
+
         fun getDatabase(context: Context): AlarmDatabase {
             return Instance
                 ?: synchronized(this) {
                     Room.databaseBuilder(context, AlarmDatabase::class.java, "alarm_database")
+                        .addMigrations(MIGRATION_1_2)
                         .build()
                         .also { Instance = it }
                 }

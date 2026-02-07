@@ -31,5 +31,13 @@ interface IAlarmRepository {
 
     suspend fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>)
 
-    suspend fun rescheduleAlarmAfterPlaying(alarmId: Int)
+    suspend fun scheduleNextAlarm(): Boolean
+
+    fun canScheduleExactAlarms(): Boolean
+
+    suspend fun setRingingAlarm(hour: Int, minute: Int)
+
+    suspend fun clearRingingAlarm()
+
+    suspend fun deactivateOneShotAlarms(ids: List<Int>)
 }

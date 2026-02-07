@@ -188,7 +188,13 @@ class FakeAlarmRepository : IAlarmRepository {
         setRepeatDaysCallCount++
     }
 
-    override suspend fun rescheduleAlarmAfterPlaying(alarmId: Int) {
-        // Not implemented for this fake
-    }
+    override suspend fun scheduleNextAlarm(): Boolean = shouldSucceed
+
+    override fun canScheduleExactAlarms(): Boolean = true
+
+    override suspend fun setRingingAlarm(hour: Int, minute: Int) {}
+
+    override suspend fun clearRingingAlarm() {}
+
+    override suspend fun deactivateOneShotAlarms(ids: List<Int>) {}
 }

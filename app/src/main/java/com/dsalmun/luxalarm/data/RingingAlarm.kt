@@ -14,13 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with Lux Alarm.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.dsalmun.luxalarm
+package com.dsalmun.luxalarm.data
 
-import android.app.Application
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-class LuxAlarmApplication : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        AppContainer.initialize(this)
-    }
-}
+@Entity(tableName = "ringing_alarm")
+data class RingingAlarm(
+    @PrimaryKey val id: Int = 1,
+    val hour: Int,
+    val minute: Int,
+)

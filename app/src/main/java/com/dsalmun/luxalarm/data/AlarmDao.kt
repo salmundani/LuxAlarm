@@ -19,6 +19,7 @@ package com.dsalmun.luxalarm.data
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
@@ -34,4 +35,14 @@ interface AlarmDao {
     @Query("SELECT * FROM alarms ORDER BY id ASC") fun getAllAlarms(): Flow<List<AlarmItem>>
 
     @Query("SELECT * FROM alarms WHERE id = :id") suspend fun getAlarmById(id: Int): AlarmItem?
+
+    @Query("SELECT * FROM alarms WHERE isActive = 1") suspend fun getActiveAlarms(): List<AlarmItem>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun setRingingAlarm(ringingAlarm: RingingAlarm)
+
+    @Query("DELETE FROM ringing_alarm") suspend fun clearRingingAlarm()
+
+    @Query("UPDATE alarms SET isActive = 0 WHERE id IN (:ids) AND repeatDays = ''")
+    suspend fun deactivateOneShotAlarms(ids: List<Int>)
 }

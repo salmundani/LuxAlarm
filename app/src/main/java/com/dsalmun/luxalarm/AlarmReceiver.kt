@@ -28,111 +28,88 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.edit
-
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 class AlarmReceiver : BroadcastReceiver() {
     companion object {
-        private const val ALARM_PLAYING_PREF = "alarm_playing"
-        private const val ALARM_HOUR_PREF = "alarm_hour"
-        private const val ALARM_MINUTE_PREF = "alarm_minute"
-        private const val ALARM_IDS_PREF = "alarm_ids"
         private const val ALARM_CHANNEL_ID = "alarm_channel_id"
         const val ALARM_NOTIFICATION_ID = 1001
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
-        val sharedPrefs = context.getSharedPreferences("luxalarm_prefs", Context.MODE_PRIVATE)
-
         val alarmHour = intent?.getIntExtra("alarm_hour", -1) ?: -1
         val alarmMinute = intent?.getIntExtra("alarm_minute", -1) ?: -1
-        val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
+        val alarmIds = intent?.getIntegerArrayListExtra("alarm_ids") ?: arrayListOf()
+        val alarmId = alarmIds.firstOrNull() ?: -1
 
-        // Check if this is the first alarm for this time
-        val isFirstAlarmForThisTime =
-            !sharedPrefs.getBoolean(ALARM_PLAYING_PREF, false) ||
-                sharedPrefs.getInt(ALARM_HOUR_PREF, -1) != alarmHour ||
-                sharedPrefs.getInt(ALARM_MINUTE_PREF, -1) != alarmMinute
+        val serviceIntent =
+            Intent(context, AlarmService::class.java).apply { putExtra("alarm_id", alarmId) }
+        context.startService(serviceIntent)
 
-        // Collect alarm IDs for the current time
-        val currentAlarmIds =
-            if (isFirstAlarmForThisTime) {
-                // Start fresh for a new time
-                mutableSetOf(alarmId.toString())
-            } else {
-                // Add to existing alarms for the same time
-                val existingIds =
-                    sharedPrefs.getStringSet(ALARM_IDS_PREF, emptySet())?.toMutableSet()
-                        ?: mutableSetOf()
-                existingIds.add(alarmId.toString())
-                existingIds
+        val activityIntent =
+            Intent(context, AlarmActivity::class.java).apply {
+                flags =
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_NO_USER_ACTION or
+                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                putExtra("alarm_id", alarmId)
             }
+        context.startActivity(activityIntent)
 
-        sharedPrefs.edit {
-            putBoolean(ALARM_PLAYING_PREF, true)
-                .putInt(ALARM_HOUR_PREF, alarmHour)
-                .putInt(ALARM_MINUTE_PREF, alarmMinute)
-                .putStringSet(ALARM_IDS_PREF, currentAlarmIds)
+        createNotificationChannel(context)
+
+        // Create a pending intent for the full screen intent
+        val fullScreenIntent =
+            Intent(context, AlarmActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("alarm_id", alarmId)
+            }
+        val fullScreenPendingIntent =
+            PendingIntent.getActivity(
+                context,
+                0,
+                fullScreenIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+
+        val notification =
+            NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setContentTitle("Alarm Ringing")
+                .setContentText("Tap to open alarm screen")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setFullScreenIntent(fullScreenPendingIntent, true)
+                .setAutoCancel(true)
+                .setOngoing(true)
+                .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                NotificationManagerCompat.from(context)
+                    .notify(ALARM_NOTIFICATION_ID, notification)
+            }
+        } else {
+            // For older versions, permission is granted by default
+            NotificationManagerCompat.from(context).notify(ALARM_NOTIFICATION_ID, notification)
         }
 
-        // Only start the service and activity for the first alarm at this time
-        if (isFirstAlarmForThisTime) {
-            val serviceIntent =
-                Intent(context, AlarmService::class.java).apply { putExtra("alarm_id", alarmId) }
-            context.startService(serviceIntent)
-
-            val activityIntent =
-                Intent(context, AlarmActivity::class.java).apply {
-                    flags =
-                        Intent.FLAG_ACTIVITY_NEW_TASK or
-                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                            Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                            Intent.FLAG_ACTIVITY_NO_USER_ACTION or
-                            Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-                    putExtra("alarm_id", alarmId)
-                }
-            context.startActivity(activityIntent)
-
-            createNotificationChannel(context)
-
-            // Create a pending intent for the full screen intent
-            val fullScreenIntent =
-                Intent(context, AlarmActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra("alarm_id", alarmId)
-                }
-            val fullScreenPendingIntent =
-                PendingIntent.getActivity(
-                    context,
-                    0,
-                    fullScreenIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                )
-
-            val notification =
-                NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                    .setContentTitle("Alarm Ringing")
-                    .setContentText("Tap to open alarm screen")
-                    .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setCategory(NotificationCompat.CATEGORY_ALARM)
-                    .setFullScreenIntent(fullScreenPendingIntent, true)
-                    .setAutoCancel(true)
-                    .setOngoing(true)
-                    .build()
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (
-                    ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.POST_NOTIFICATIONS,
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    NotificationManagerCompat.from(context)
-                        .notify(ALARM_NOTIFICATION_ID, notification)
-                }
-            } else {
-                // For older versions, permission is granted by default
-                NotificationManagerCompat.from(context).notify(ALARM_NOTIFICATION_ID, notification)
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                AppContainer.repository.setRingingAlarm(alarmHour, alarmMinute)
+                AppContainer.repository.deactivateOneShotAlarms(alarmIds.toList())
+                AppContainer.repository.scheduleNextAlarm()
+            } finally {
+                pendingResult.finish()
             }
         }
     }

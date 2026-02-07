@@ -16,25 +16,23 @@
  */
 package com.dsalmun.luxalarm
 
-import android.content.Context
+import android.app.Application
 import com.dsalmun.luxalarm.data.AlarmDatabase
 import com.dsalmun.luxalarm.data.AlarmRepository
 import com.dsalmun.luxalarm.data.IAlarmRepository
 
-object AppContainer {
-    @Volatile lateinit var database: AlarmDatabase
+class AppContainer : Application() {
+    companion object {
+        @Volatile lateinit var database: AlarmDatabase
 
-    @Volatile lateinit var repository: IAlarmRepository
-    lateinit var settingsManager: SettingsManager
+        @Volatile lateinit var repository: IAlarmRepository
+        lateinit var settingsManager: SettingsManager
+    }
 
-    @Volatile private var initialized = false
-
-    @Synchronized
-    fun initialize(context: Context) {
-        if (initialized) return
-        database = AlarmDatabase.getDatabase(context)
-        repository = AlarmRepository(database.alarmDao(), AlarmScheduler, context)
-        settingsManager = SettingsManager(context)
-        initialized = true
+    override fun onCreate() {
+        super.onCreate()
+        database = AlarmDatabase.getDatabase(this)
+        repository = AlarmRepository(database.alarmDao(), this)
+        settingsManager = SettingsManager(this)
     }
 }
