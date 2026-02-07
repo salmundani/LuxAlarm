@@ -141,7 +141,9 @@ class FakeAlarmRepository : IAlarmRepository {
 
     override fun canScheduleExactAlarms(): Boolean = true
 
-    override suspend fun setRingingAlarm(hour: Int, minute: Int) {}
+    override suspend fun isAlarmRinging(): Boolean = false
+
+    override suspend fun setRingingAlarm() {}
 
     override suspend fun clearRingingAlarm() {}
 

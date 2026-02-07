@@ -37,7 +37,7 @@ interface IAlarmRepository {
 
     suspend fun isAlarmRinging(): Boolean
 
-    suspend fun setRingingAlarm(hour: Int, minute: Int)
+    suspend fun setRingingAlarm()
 
     suspend fun clearRingingAlarm()
 

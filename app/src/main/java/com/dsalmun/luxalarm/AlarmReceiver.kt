@@ -38,8 +38,6 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
-        val alarmHour = intent?.getIntExtra("alarm_hour", -1) ?: -1
-        val alarmMinute = intent?.getIntExtra("alarm_minute", -1) ?: -1
         val alarmIds = intent?.getIntegerArrayListExtra("alarm_ids") ?: arrayListOf()
         val alarmId = alarmIds.firstOrNull() ?: -1
 
@@ -49,7 +47,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 val alreadyRinging = AppContainer.repository.isAlarmRinging()
 
                 if (!alreadyRinging) {
-                    AppContainer.repository.setRingingAlarm(alarmHour, alarmMinute)
+                    AppContainer.repository.setRingingAlarm()
 
                     val serviceIntent =
                         Intent(context, AlarmService::class.java).apply {

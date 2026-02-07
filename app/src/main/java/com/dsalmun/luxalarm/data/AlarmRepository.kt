@@ -36,7 +36,11 @@ class AlarmRepository(
 ) : IAlarmRepository {
     private companion object {
         const val NEXT_ALARM_REQUEST_CODE = 0
+        const val PREFS_NAME = "alarm_state"
+        const val KEY_IS_RINGING = "is_ringing"
     }
+
+    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     override fun getAllAlarms(): Flow<List<AlarmItem>> = alarmDao.getAllAlarms()
 
     override suspend fun addAlarm(hour: Int, minute: Int): Boolean {
@@ -113,13 +117,9 @@ class AlarmRepository(
             .filter { it.second == minTriggerTime }
             .map { it.first.id }
 
-        val firstAlarm = alarmTriggers.first { it.second == minTriggerTime }.first
-
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent =
             Intent(context, AlarmReceiver::class.java).apply {
-                putExtra("alarm_hour", firstAlarm.hour)
-                putExtra("alarm_minute", firstAlarm.minute)
                 putIntegerArrayListExtra("alarm_ids", ArrayList(alarmIds))
             }
         val pendingIntent =
@@ -146,14 +146,14 @@ class AlarmRepository(
         return true
     }
 
-    override suspend fun isAlarmRinging(): Boolean = alarmDao.getRingingAlarm() != null
+    override suspend fun isAlarmRinging(): Boolean = prefs.getBoolean(KEY_IS_RINGING, false)
 
-    override suspend fun setRingingAlarm(hour: Int, minute: Int) {
-        alarmDao.setRingingAlarm(RingingAlarm(hour = hour, minute = minute))
+    override suspend fun setRingingAlarm() {
+        prefs.edit().putBoolean(KEY_IS_RINGING, true).apply()
     }
 
     override suspend fun clearRingingAlarm() {
-        alarmDao.clearRingingAlarm()
+        prefs.edit().putBoolean(KEY_IS_RINGING, false).apply()
     }
 
     override suspend fun deactivateOneShotAlarms(ids: List<Int>) {
