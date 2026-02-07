@@ -41,6 +41,8 @@ interface AlarmDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun setRingingAlarm(ringingAlarm: RingingAlarm)
 
+    @Query("SELECT * FROM ringing_alarm WHERE id = 1") suspend fun getRingingAlarm(): RingingAlarm?
+
     @Query("DELETE FROM ringing_alarm") suspend fun clearRingingAlarm()
 
     @Query("UPDATE alarms SET isActive = 0 WHERE id IN (:ids) AND repeatDays = ''")

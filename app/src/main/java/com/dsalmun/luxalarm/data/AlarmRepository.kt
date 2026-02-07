@@ -146,6 +146,8 @@ class AlarmRepository(
         return true
     }
 
+    override suspend fun isAlarmRinging(): Boolean = alarmDao.getRingingAlarm() != null
+
     override suspend fun setRingingAlarm(hour: Int, minute: Int) {
         alarmDao.setRingingAlarm(RingingAlarm(hour = hour, minute = minute))
     }

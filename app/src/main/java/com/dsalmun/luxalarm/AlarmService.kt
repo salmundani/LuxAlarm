@@ -116,7 +116,6 @@ class AlarmService : Service() {
 
         serviceScope.launch {
             AppContainer.repository.clearRingingAlarm()
-            AppContainer.repository.scheduleNextAlarm()
         }
 
         stopSelf()

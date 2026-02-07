@@ -43,69 +43,76 @@ class AlarmReceiver : BroadcastReceiver() {
         val alarmIds = intent?.getIntegerArrayListExtra("alarm_ids") ?: arrayListOf()
         val alarmId = alarmIds.firstOrNull() ?: -1
 
-        val serviceIntent =
-            Intent(context, AlarmService::class.java).apply { putExtra("alarm_id", alarmId) }
-        context.startService(serviceIntent)
-
-        val activityIntent =
-            Intent(context, AlarmActivity::class.java).apply {
-                flags =
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                        Intent.FLAG_ACTIVITY_NO_USER_ACTION or
-                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-                putExtra("alarm_id", alarmId)
-            }
-        context.startActivity(activityIntent)
-
-        createNotificationChannel(context)
-
-        // Create a pending intent for the full screen intent
-        val fullScreenIntent =
-            Intent(context, AlarmActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("alarm_id", alarmId)
-            }
-        val fullScreenPendingIntent =
-            PendingIntent.getActivity(
-                context,
-                0,
-                fullScreenIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-
-        val notification =
-            NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                .setContentTitle("Alarm Ringing")
-                .setContentText("Tap to open alarm screen")
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .setFullScreenIntent(fullScreenPendingIntent, true)
-                .setAutoCancel(true)
-                .setOngoing(true)
-                .build()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                NotificationManagerCompat.from(context)
-                    .notify(ALARM_NOTIFICATION_ID, notification)
-            }
-        } else {
-            // For older versions, permission is granted by default
-            NotificationManagerCompat.from(context).notify(ALARM_NOTIFICATION_ID, notification)
-        }
-
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                AppContainer.repository.setRingingAlarm(alarmHour, alarmMinute)
+                val alreadyRinging = AppContainer.repository.isAlarmRinging()
+
+                if (!alreadyRinging) {
+                    AppContainer.repository.setRingingAlarm(alarmHour, alarmMinute)
+
+                    val serviceIntent =
+                        Intent(context, AlarmService::class.java).apply {
+                            putExtra("alarm_id", alarmId)
+                        }
+                    context.startService(serviceIntent)
+
+                    val activityIntent =
+                        Intent(context, AlarmActivity::class.java).apply {
+                            flags =
+                                Intent.FLAG_ACTIVITY_NEW_TASK or
+                                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                                    Intent.FLAG_ACTIVITY_NO_USER_ACTION or
+                                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                            putExtra("alarm_id", alarmId)
+                        }
+                    context.startActivity(activityIntent)
+
+                    createNotificationChannel(context)
+
+                    val fullScreenIntent =
+                        Intent(context, AlarmActivity::class.java).apply {
+                            flags =
+                                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            putExtra("alarm_id", alarmId)
+                        }
+                    val fullScreenPendingIntent =
+                        PendingIntent.getActivity(
+                            context,
+                            0,
+                            fullScreenIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                        )
+
+                    val notification =
+                        NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
+                            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                            .setContentTitle("Alarm Ringing")
+                            .setContentText("Tap to open alarm screen")
+                            .setPriority(NotificationCompat.PRIORITY_MAX)
+                            .setCategory(NotificationCompat.CATEGORY_ALARM)
+                            .setFullScreenIntent(fullScreenPendingIntent, true)
+                            .setAutoCancel(true)
+                            .setOngoing(true)
+                            .build()
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS,
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            NotificationManagerCompat.from(context)
+                                .notify(ALARM_NOTIFICATION_ID, notification)
+                        }
+                    } else {
+                        NotificationManagerCompat.from(context)
+                            .notify(ALARM_NOTIFICATION_ID, notification)
+                    }
+                }
+
                 AppContainer.repository.deactivateOneShotAlarms(alarmIds.toList())
                 AppContainer.repository.scheduleNextAlarm()
             } finally {
