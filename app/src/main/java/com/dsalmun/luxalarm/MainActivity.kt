@@ -31,6 +31,7 @@ import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.dsalmun.luxalarm.ui.theme.LuxAlarmTheme
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     private val requestNotificationPermissionLauncher =
@@ -46,6 +47,17 @@ class MainActivity : ComponentActivity() {
                 // TODO: User didn't grant permission. Show a dialog explaining why it's needed
             }
         }
+
+    override fun onResume() {
+        super.onResume()
+        val ringing = runBlocking { AppContainer.repository.isAlarmRinging() }
+        if (ringing) {
+            val intent = Intent(this, AlarmActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            startActivity(intent)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
