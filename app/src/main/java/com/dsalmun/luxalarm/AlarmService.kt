@@ -16,6 +16,7 @@
  */
 package com.dsalmun.luxalarm
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -77,7 +78,11 @@ class AlarmService : Service() {
         try {
             createNotificationChannel()
             val notification = buildAlarmNotification(alarmId)
-            startForeground(ALARM_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(ALARM_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+            } else {
+                startForeground(ALARM_NOTIFICATION_ID, notification)
+            }
 
             val audioAttrs = AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_ALARM)
@@ -161,6 +166,8 @@ class AlarmService : Service() {
         notificationManager.createNotificationChannel(channel)
     }
 
+    // Alarm apps have FullScreenIntent enabled
+    @SuppressLint("FullScreenIntentPolicy")
     private fun buildAlarmNotification(alarmId: Int): Notification {
         val fullScreenIntent =
             Intent(this, AlarmActivity::class.java).apply {
