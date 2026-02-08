@@ -162,7 +162,8 @@ class AlarmService : Service() {
             NotificationChannel(ALARM_CHANNEL_ID, name, importance).apply {
                 description = descriptionText
                 setBypassDnd(true)
-                enableVibration(true)
+                enableVibration(false)
+                setSound(null, null)
                 setShowBadge(false)
             }
         val notificationManager: NotificationManager =
