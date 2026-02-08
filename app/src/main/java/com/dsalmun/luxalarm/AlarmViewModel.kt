@@ -86,13 +86,7 @@ class AlarmViewModel(private val repository: IAlarmRepository) : ViewModel() {
     }
 
     fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>) {
-        viewModelScope.launch {
-            repository.setRepeatDays(alarmId, repeatDays)
-            val alarm = alarms.value.find { it.id == alarmId }
-            if (alarm != null && alarm.isActive) {
-                _events.emit(Event.ShowAlarmSetMessage(alarm.hour, alarm.minute, repeatDays))
-            }
-        }
+        viewModelScope.launch { repository.setRepeatDays(alarmId, repeatDays) }
     }
 
     sealed class Event {
