@@ -52,10 +52,14 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         val ringing = runBlocking { AppContainer.repository.isAlarmRinging() }
         if (ringing) {
-            val intent = Intent(this, AlarmActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (AlarmService.isRunning) {
+                val intent = Intent(this, AlarmActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+                startActivity(intent)
+            } else {
+                runBlocking { AppContainer.repository.clearRingingAlarm() }
             }
-            startActivity(intent)
         }
     }
 

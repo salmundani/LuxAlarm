@@ -56,6 +56,8 @@ class AlarmService : Service() {
         const val ACTION_STOP_ALARM = "com.dsalmun.luxalarm.STOP_ALARM"
         private const val ALARM_CHANNEL_ID = "alarm_channel_id"
         const val ALARM_NOTIFICATION_ID = 1001
+        var isRunning = false
+            private set
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -75,6 +77,7 @@ class AlarmService : Service() {
     }
 
     private fun startAlarm(alarmId: Int) {
+        isRunning = true
         try {
             createNotificationChannel()
             val notification = buildAlarmNotification(alarmId)
@@ -128,6 +131,7 @@ class AlarmService : Service() {
     private fun stopAlarm() {
         if (alarmStopped) return
         alarmStopped = true
+        isRunning = false
 
         mediaPlayer?.apply {
             if (isPlaying) {
