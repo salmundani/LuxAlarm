@@ -18,13 +18,10 @@ package com.dsalmun.luxalarm.data
 
 import android.app.AlarmManager
 import android.app.PendingIntent
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import com.dsalmun.luxalarm.AlarmReceiver
-import com.dsalmun.luxalarm.BootReceiver
 import com.dsalmun.luxalarm.MainActivity
 import kotlinx.coroutines.flow.Flow
 import java.util.Calendar
@@ -100,7 +97,6 @@ class AlarmRepository(
 
         if (activeAlarms.isEmpty()) {
             cancelNextAlarm()
-            setBootReceiverEnabled(false)
             return true
         }
 
@@ -142,7 +138,6 @@ class AlarmRepository(
             AlarmManager.AlarmClockInfo(minTriggerTime, showIntent),
             pendingIntent,
         )
-        setBootReceiverEnabled(true)
         return true
     }
 
@@ -170,16 +165,6 @@ class AlarmRepository(
         } else {
             true
         }
-
-    private fun setBootReceiverEnabled(enabled: Boolean) {
-        val receiver = ComponentName(context, BootReceiver::class.java)
-        context.packageManager.setComponentEnabledSetting(
-            receiver,
-            if (enabled) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-            else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-            PackageManager.DONT_KILL_APP,
-        )
-    }
 
     private fun cancelNextAlarm() {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
