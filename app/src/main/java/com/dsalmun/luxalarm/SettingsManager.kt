@@ -21,6 +21,7 @@ import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import androidx.core.content.edit
 
 class SettingsManager(context: Context) {
     private val prefs: SharedPreferences =
@@ -34,7 +35,7 @@ class SettingsManager(context: Context) {
     }
 
     fun setRequiredLuxLevel(level: Float) {
-        prefs.edit().putFloat(KEY_REQUIRED_LUX_LEVEL, level).apply()
+        prefs.edit { putFloat(KEY_REQUIRED_LUX_LEVEL, level) }
         _requiredLuxLevel.value = level
     }
 

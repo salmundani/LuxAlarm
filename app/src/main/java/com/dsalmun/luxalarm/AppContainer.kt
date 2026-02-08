@@ -23,9 +23,8 @@ import com.dsalmun.luxalarm.data.IAlarmRepository
 
 class AppContainer : Application() {
     companion object {
-        @Volatile lateinit var database: AlarmDatabase
-
-        @Volatile lateinit var repository: IAlarmRepository
+        lateinit var database: AlarmDatabase
+        lateinit var repository: IAlarmRepository
         lateinit var settingsManager: SettingsManager
     }
 

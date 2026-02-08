@@ -29,6 +29,7 @@ import com.dsalmun.luxalarm.BootReceiver
 import com.dsalmun.luxalarm.MainActivity
 import kotlinx.coroutines.flow.Flow
 import java.util.Calendar
+import androidx.core.content.edit
 
 class AlarmRepository(
     private val alarmDao: AlarmDao,
@@ -149,11 +150,11 @@ class AlarmRepository(
     override suspend fun isAlarmRinging(): Boolean = prefs.getBoolean(KEY_IS_RINGING, false)
 
     override suspend fun setRingingAlarm() {
-        prefs.edit().putBoolean(KEY_IS_RINGING, true).apply()
+        prefs.edit { putBoolean(KEY_IS_RINGING, true) }
     }
 
     override suspend fun clearRingingAlarm() {
-        prefs.edit().putBoolean(KEY_IS_RINGING, false).apply()
+        prefs.edit { putBoolean(KEY_IS_RINGING, false) }
     }
 
     override suspend fun deactivateOneShotAlarms(ids: List<Int>) {
