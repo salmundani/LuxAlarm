@@ -23,17 +23,13 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val alarmIds = intent?.getIntegerArrayListExtra("alarm_ids") ?: arrayListOf()
         val alarmId = alarmIds.firstOrNull() ?: -1
-        val alreadyRinging = runBlocking { AppContainer.repository.isAlarmRinging() }
 
-        if (!alreadyRinging) {
-            runBlocking { AppContainer.repository.setRingingAlarm() }
-
+        if (AppContainer.repository.setRingingAlarm()) {
             val serviceIntent =
                 Intent(context, AlarmService::class.java).apply {
                     putExtra("alarm_id", alarmId)

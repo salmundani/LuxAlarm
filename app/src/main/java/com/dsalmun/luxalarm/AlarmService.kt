@@ -39,7 +39,6 @@ import android.os.PowerManager
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
-import kotlinx.coroutines.runBlocking
 
 class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
@@ -158,7 +157,7 @@ class AlarmService : Service() {
         audioFocusRequest = null
         audioManager = null
 
-        runBlocking { AppContainer.repository.clearRingingAlarm() }
+        AppContainer.repository.clearRingingAlarm()
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()

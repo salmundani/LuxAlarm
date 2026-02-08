@@ -31,7 +31,6 @@ import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.dsalmun.luxalarm.ui.theme.LuxAlarmTheme
-import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     private val requestNotificationPermissionLauncher =
@@ -50,15 +49,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        val ringing = runBlocking { AppContainer.repository.isAlarmRinging() }
-        if (ringing) {
+        if (AppContainer.repository.isAlarmRinging()) {
             if (AlarmService.isRunning) {
                 val intent = Intent(this, AlarmActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
                 startActivity(intent)
             } else {
-                runBlocking { AppContainer.repository.clearRingingAlarm() }
+                AppContainer.repository.clearRingingAlarm()
             }
         }
     }

@@ -35,11 +35,11 @@ interface IAlarmRepository {
 
     fun canScheduleExactAlarms(): Boolean
 
-    suspend fun isAlarmRinging(): Boolean
+    fun isAlarmRinging(): Boolean
 
-    suspend fun setRingingAlarm()
+    fun setRingingAlarm(): Boolean
 
-    suspend fun clearRingingAlarm()
+    fun clearRingingAlarm()
 
     suspend fun deactivateOneShotAlarms(ids: List<Int>)
 }

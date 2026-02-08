@@ -41,6 +41,7 @@ class AlarmRepository(
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
     override fun getAllAlarms(): Flow<List<AlarmItem>> = alarmDao.getAllAlarms()
 
     override suspend fun addAlarm(hour: Int, minute: Int): Boolean {
@@ -145,13 +146,16 @@ class AlarmRepository(
         return true
     }
 
-    override suspend fun isAlarmRinging(): Boolean = prefs.getBoolean(KEY_IS_RINGING, false)
+    override fun isAlarmRinging(): Boolean = prefs.getBoolean(KEY_IS_RINGING, false)
 
-    override suspend fun setRingingAlarm() {
+    @Synchronized
+    override fun setRingingAlarm(): Boolean {
+        if (prefs.getBoolean(KEY_IS_RINGING, false)) return false
         prefs.edit { putBoolean(KEY_IS_RINGING, true) }
+        return true
     }
 
-    override suspend fun clearRingingAlarm() {
+    override fun clearRingingAlarm() {
         prefs.edit { putBoolean(KEY_IS_RINGING, false) }
     }
 
