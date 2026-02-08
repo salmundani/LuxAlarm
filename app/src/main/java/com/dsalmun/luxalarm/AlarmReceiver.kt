@@ -35,18 +35,6 @@ class AlarmReceiver : BroadcastReceiver() {
                     putExtra("alarm_id", alarmId)
                 }
             ContextCompat.startForegroundService(context, serviceIntent)
-
-            val activityIntent =
-                Intent(context, AlarmActivity::class.java).apply {
-                    flags =
-                        Intent.FLAG_ACTIVITY_NEW_TASK or
-                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                            Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                            Intent.FLAG_ACTIVITY_NO_USER_ACTION or
-                            Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-                    putExtra("alarm_id", alarmId)
-                }
-            context.startActivity(activityIntent)
         }
 
         val pendingResult = goAsync()

@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+
     override fun onResume() {
         super.onResume()
         if (AppContainer.repository.isAlarmRinging()) {
@@ -83,18 +84,23 @@ class MainActivity : ComponentActivity() {
 
     private fun requestRequiredPermissions() {
         // Request notification permission (Android 13+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (
-                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-                    PackageManager.PERMISSION_GRANTED
-            ) {
-                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED) {
+            requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        // Request exact alarm permission (Android 12+)
+        // Request exact alarm permission
         if (!AppContainer.repository.canScheduleExactAlarms()) {
             requestExactAlarmPermission()
+        }
+
+        // Request overlay permission for reliable alarm display
+        if (!Settings.canDrawOverlays(this)) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                "package:$packageName".toUri()
+            )
+            startActivity(intent)
         }
     }
 

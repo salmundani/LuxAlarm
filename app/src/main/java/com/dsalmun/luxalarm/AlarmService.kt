@@ -38,6 +38,7 @@ import android.os.VibrationEffect
 import android.os.PowerManager
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 
 class AlarmService : Service() {
@@ -85,6 +86,20 @@ class AlarmService : Service() {
                 startForeground(ALARM_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
             } else {
                 startForeground(ALARM_NOTIFICATION_ID, notification)
+            }
+
+            if (Settings.canDrawOverlays(this)) {
+                val activityIntent =
+                    Intent(this, AlarmActivity::class.java).apply {
+                        flags =
+                            Intent.FLAG_ACTIVITY_NEW_TASK or
+                                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                                Intent.FLAG_ACTIVITY_NO_USER_ACTION or
+                                Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                        putExtra("alarm_id", alarmId)
+                    }
+                startActivity(activityIntent)
             }
 
             val audioAttrs = AudioAttributes.Builder()
