@@ -161,7 +161,6 @@ class AlarmRepository(
 
     override suspend fun cancelV1Alarms() {
         if (prefs.getBoolean(KEY_V1_MIGRATED, false)) return
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         for (id in alarmDao.getAllAlarmIds()) {
             val intent = Intent(context, AlarmReceiver::class.java)
             val pendingIntent = PendingIntent.getBroadcast(
@@ -170,7 +169,7 @@ class AlarmRepository(
                 intent,
                 PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
             )
-            pendingIntent?.let { alarmManager.cancel(it) }
+            pendingIntent?.cancel()
         }
         prefs.edit { putBoolean(KEY_V1_MIGRATED, true) }
         scheduleNextAlarm()

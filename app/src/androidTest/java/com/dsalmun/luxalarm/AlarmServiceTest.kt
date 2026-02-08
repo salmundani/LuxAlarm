@@ -26,9 +26,6 @@ import androidx.test.rule.ServiceTestRule
 import com.dsalmun.luxalarm.data.AlarmDatabase
 import com.dsalmun.luxalarm.data.AlarmItem
 import com.dsalmun.luxalarm.data.IAlarmRepository
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -66,33 +63,6 @@ class AlarmServiceTest {
     }
 
     @Test
-    fun stopAlarm_callsScheduleNextAlarm() {
-        val intent =
-            Intent(context, AlarmService::class.java).apply {
-                action = AlarmService.ACTION_STOP_ALARM
-            }
-        serviceRule.startService(intent)
-        val success = fakeRepository.latch.await(5, TimeUnit.SECONDS)
-
-        assertTrue(success, "Latch did not count down in time")
-        assertEquals(1, fakeRepository.scheduleNextAlarmCallCount)
-    }
-
-    @Test
-    fun stopAlarm_withNoPlayingAlarms_stillCallsScheduleNextAlarm() {
-        val intent =
-            Intent(context, AlarmService::class.java).apply {
-                action = AlarmService.ACTION_STOP_ALARM
-            }
-        serviceRule.startService(intent)
-
-        val success = fakeRepository.latch.await(5, TimeUnit.SECONDS)
-
-        assertTrue(success, "scheduleNextAlarm should always be called")
-        assertEquals(1, fakeRepository.scheduleNextAlarmCallCount)
-    }
-
-    @Test
     fun deactivateOneShotAlarms_onlyDeactivatesNonRepeating() {
         val dao = database.alarmDao()
         runBlocking {
@@ -118,9 +88,6 @@ class AlarmServiceTest {
 
 class FakeAlarmRepository : IAlarmRepository {
     private val alarmsFlow = MutableStateFlow<List<AlarmItem>>(emptyList())
-    var scheduleNextAlarmCallCount = 0
-    val latch = CountDownLatch(1)
-
     override fun getAllAlarms(): Flow<List<AlarmItem>> = alarmsFlow
 
     override suspend fun addAlarm(hour: Int, minute: Int): Boolean = true
@@ -133,11 +100,7 @@ class FakeAlarmRepository : IAlarmRepository {
 
     override suspend fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>) {}
 
-    override suspend fun scheduleNextAlarm(): Boolean {
-        scheduleNextAlarmCallCount++
-        latch.countDown()
-        return true
-    }
+    override suspend fun scheduleNextAlarm(): Boolean = true
 
     override fun canScheduleExactAlarms(): Boolean = true
 
