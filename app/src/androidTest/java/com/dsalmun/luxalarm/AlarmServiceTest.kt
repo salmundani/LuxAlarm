@@ -148,4 +148,6 @@ class FakeAlarmRepository : IAlarmRepository {
     override fun clearRingingAlarm() {}
 
     override suspend fun deactivateOneShotAlarms(ids: List<Int>) {}
+
+    override suspend fun cancelV1Alarms() {}
 }

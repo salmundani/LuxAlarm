@@ -42,4 +42,6 @@ interface IAlarmRepository {
     fun clearRingingAlarm()
 
     suspend fun deactivateOneShotAlarms(ids: List<Int>)
+
+    suspend fun cancelV1Alarms()
 }

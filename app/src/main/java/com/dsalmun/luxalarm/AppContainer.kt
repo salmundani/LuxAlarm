@@ -20,6 +20,9 @@ import android.app.Application
 import com.dsalmun.luxalarm.data.AlarmDatabase
 import com.dsalmun.luxalarm.data.AlarmRepository
 import com.dsalmun.luxalarm.data.IAlarmRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class AppContainer : Application() {
     companion object {
@@ -33,5 +36,6 @@ class AppContainer : Application() {
         database = AlarmDatabase.getDatabase(this)
         repository = AlarmRepository(database.alarmDao(), this)
         settingsManager = SettingsManager(this)
+        CoroutineScope(Dispatchers.IO).launch { repository.cancelV1Alarms() }
     }
 }

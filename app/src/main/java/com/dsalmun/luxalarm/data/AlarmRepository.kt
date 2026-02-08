@@ -35,6 +35,7 @@ class AlarmRepository(
         const val NEXT_ALARM_REQUEST_CODE = 0
         const val PREFS_NAME = "alarm_state"
         const val KEY_IS_RINGING = "is_ringing"
+        const val KEY_V1_MIGRATED = "v1_migrated"
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -156,6 +157,23 @@ class AlarmRepository(
 
     override suspend fun deactivateOneShotAlarms(ids: List<Int>) {
         alarmDao.deactivateOneShotAlarms(ids)
+    }
+
+    override suspend fun cancelV1Alarms() {
+        if (prefs.getBoolean(KEY_V1_MIGRATED, false)) return
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        for (id in alarmDao.getAllAlarmIds()) {
+            val intent = Intent(context, AlarmReceiver::class.java)
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                id,
+                intent,
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+            )
+            pendingIntent?.let { alarmManager.cancel(it) }
+        }
+        prefs.edit { putBoolean(KEY_V1_MIGRATED, true) }
+        scheduleNextAlarm()
     }
 
     override fun canScheduleExactAlarms(): Boolean =

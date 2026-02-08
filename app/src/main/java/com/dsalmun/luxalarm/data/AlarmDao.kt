@@ -37,6 +37,8 @@ interface AlarmDao {
 
     @Query("SELECT * FROM alarms WHERE isActive = 1") suspend fun getActiveAlarms(): List<AlarmItem>
 
+    @Query("SELECT id FROM alarms") suspend fun getAllAlarmIds(): List<Int>
+
     @Query("UPDATE alarms SET isActive = 0 WHERE id IN (:ids) AND repeatDays = ''")
     suspend fun deactivateOneShotAlarms(ids: List<Int>)
 }
