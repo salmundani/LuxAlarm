@@ -23,7 +23,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
 import com.dsalmun.luxalarm.AlarmReceiver
 import com.dsalmun.luxalarm.BootReceiver
 import com.dsalmun.luxalarm.MainActivity
@@ -143,7 +142,6 @@ class AlarmRepository(
             pendingIntent,
         )
         setBootReceiverEnabled(true)
-        Log.d("AlarmScheduler", "Scheduled next alarm (IDs=$alarmIds) at $minTriggerTime")
         return true
     }
 

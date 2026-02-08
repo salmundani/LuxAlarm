@@ -16,27 +16,35 @@
  */
 package com.dsalmun.luxalarm
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.VibrationEffect
+import android.os.PowerManager
 import android.os.Vibrator
 import android.os.VibratorManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import androidx.core.app.NotificationCompat
+import kotlinx.coroutines.runBlocking
 
 class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
+    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
     private var vibrator: Vibrator? = null
     private var alarmStopped = false
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val binder = LocalBinder()
 
     inner class LocalBinder : Binder() {
@@ -45,35 +53,50 @@ class AlarmService : Service() {
 
     companion object {
         const val ACTION_STOP_ALARM = "com.dsalmun.luxalarm.STOP_ALARM"
+        private const val ALARM_CHANNEL_ID = "alarm_channel_id"
+        const val ALARM_NOTIFICATION_ID = 1001
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
-        when (intent?.action) {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return when (intent?.action) {
             ACTION_STOP_ALARM -> {
                 stopAlarm()
                 START_NOT_STICKY
             }
             else -> {
-                startAlarm()
+                val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
+                startAlarm(alarmId)
                 START_STICKY
             }
         }
+    }
 
-    private fun startAlarm() {
+    private fun startAlarm(alarmId: Int) {
         try {
+            createNotificationChannel()
+            val notification = buildAlarmNotification(alarmId)
+            startForeground(ALARM_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+
+            val audioAttrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .build()
+
+            // Request audio focus to prevent system from stopping/ducking our alarm
+            audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(audioAttrs)
+                .build()
+            audioManager?.requestAudioFocus(audioFocusRequest!!)
+
             // Start playing alarm sound
             val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             mediaPlayer =
                 MediaPlayer().apply {
                     setDataSource(applicationContext, alarmUri)
-                    setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .setUsage(AudioAttributes.USAGE_ALARM)
-                            .build()
-                    )
+                    setAudioAttributes(audioAttrs)
+                    setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
                     isLooping = true
                     prepare()
                     start()
@@ -101,8 +124,6 @@ class AlarmService : Service() {
         if (alarmStopped) return
         alarmStopped = true
 
-        dismissNotification()
-
         mediaPlayer?.apply {
             if (isPlaying) {
                 stop()
@@ -114,17 +135,55 @@ class AlarmService : Service() {
         vibrator?.cancel()
         vibrator = null
 
-        serviceScope.launch {
-            AppContainer.repository.clearRingingAlarm()
-        }
+        audioFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
+        audioFocusRequest = null
+        audioManager = null
 
+        runBlocking { AppContainer.repository.clearRingingAlarm() }
+
+        stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
-    private fun dismissNotification() {
-        val notificationManager =
-            getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
-        notificationManager.cancel(AlarmReceiver.ALARM_NOTIFICATION_ID)
+    private fun createNotificationChannel() {
+        val name = "Alarm notifications"
+        val descriptionText = "Notifications for triggered alarms"
+        val importance = NotificationManager.IMPORTANCE_HIGH
+        val channel =
+            NotificationChannel(ALARM_CHANNEL_ID, name, importance).apply {
+                description = descriptionText
+                setBypassDnd(true)
+                enableVibration(true)
+                setShowBadge(false)
+            }
+        val notificationManager: NotificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    private fun buildAlarmNotification(alarmId: Int): Notification {
+        val fullScreenIntent =
+            Intent(this, AlarmActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("alarm_id", alarmId)
+            }
+        val fullScreenPendingIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                fullScreenIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+
+        return NotificationCompat.Builder(this, ALARM_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setContentTitle("Alarm Ringing")
+            .setContentText("Tap to open alarm screen")
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setOngoing(true)
+            .build()
     }
 
     override fun onDestroy() {

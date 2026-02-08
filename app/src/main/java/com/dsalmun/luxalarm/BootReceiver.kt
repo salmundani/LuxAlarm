@@ -19,7 +19,6 @@ package com.dsalmun.luxalarm
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,7 +32,6 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 AppContainer.repository.clearRingingAlarm()
                 AppContainer.repository.scheduleNextAlarm()
-                Log.d("BootReceiver", "Scheduled next alarm after boot")
             } finally {
                 pendingResult.finish()
             }
