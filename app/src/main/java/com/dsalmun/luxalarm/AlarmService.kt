@@ -33,6 +33,7 @@ import android.media.RingtoneManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.PowerManager
 import android.os.Vibrator
@@ -122,7 +123,16 @@ class AlarmService : Service() {
                 }
 
             val vibrationPattern = longArrayOf(0, 1000, 500, 1000, 500)
-            vibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0))
+            val vibrationEffect = VibrationEffect.createWaveform(vibrationPattern, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val vibrationAttrs = VibrationAttributes.Builder()
+                    .setUsage(VibrationAttributes.USAGE_ALARM)
+                    .build()
+                vibrator?.vibrate(vibrationEffect, vibrationAttrs)
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(vibrationEffect, audioAttrs)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
