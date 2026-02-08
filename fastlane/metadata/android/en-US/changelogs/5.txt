@@ -1,0 +1,5 @@
+- Major alarm engine refactor for a more reliable alarm handling
+- Improved multiple and overlapping alarm behavior
+- Alarm ringing screen now reopens if the app is reopened while ringing
+- Better notification, sound, and vibration compatibility across Android versions
+- Fullscreen alarm display when screen is on
