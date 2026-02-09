@@ -17,6 +17,7 @@
 package com.dsalmun.luxalarm
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -94,13 +95,16 @@ class MainActivity : ComponentActivity() {
             requestExactAlarmPermission()
         }
 
-        // Request overlay permission for reliable alarm display
-        if (!Settings.canDrawOverlays(this)) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                "package:$packageName".toUri()
-            )
-            startActivity(intent)
+        // Request full-screen intent permission (Android 14+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val nm = getSystemService(NotificationManager::class.java)
+            if (!nm.canUseFullScreenIntent()) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                    "package:$packageName".toUri()
+                )
+                startActivity(intent)
+            }
         }
     }
 
