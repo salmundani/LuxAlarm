@@ -271,7 +271,7 @@ fun AlarmRow(
                 Text(
                     text =
                         String.format(Locale.getDefault(), "%02d:%02d", alarm.hour, alarm.minute),
-                    fontSize = 24.sp,
+                    fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable(onClick = onTimeClick),
                 )
@@ -290,7 +290,7 @@ fun AlarmRow(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = formatRepeatDays(alarm.repeatDays, alarm.hour, alarm.minute),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
@@ -308,20 +308,21 @@ fun AlarmRow(
                         onRepeatDaysChange(newDays)
                     },
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(22.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Spacer(modifier = Modifier.width(6.dp))
                     Icon(
                         painter = painterResource(R.drawable.notifications_active_24px),
                         contentDescription = "Ringtone",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
                     Text(
                         text = ringtoneDisplayName,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable(onClick = onRingtoneClick),
                     )
