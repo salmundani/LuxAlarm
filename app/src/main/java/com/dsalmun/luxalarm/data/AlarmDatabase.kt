@@ -31,7 +31,7 @@ abstract class AlarmDatabase : RoomDatabase() {
 
     companion object {
         @Volatile private var Instance: AlarmDatabase? = null
-        private val MIGRATION_1_2 =
+        internal val MIGRATION_1_2 =
             object : Migration(1, 2) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL("ALTER TABLE alarms ADD COLUMN ringtoneUri TEXT")
