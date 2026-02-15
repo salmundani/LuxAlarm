@@ -41,6 +41,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.net.toUri
 
 class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
@@ -106,7 +107,7 @@ class AlarmService : Service() {
 
             // Start playing alarm sound
             val defaultAlarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            val selectedAlarmUri = ringtoneUri?.let { Uri.parse(it) }
+            val selectedAlarmUri = ringtoneUri?.toUri()
             mediaPlayer =
                 createPlayerForUri(selectedAlarmUri, audioAttrs)
                     ?: createPlayerForUri(defaultAlarmUri, audioAttrs)

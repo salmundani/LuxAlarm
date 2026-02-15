@@ -51,12 +51,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.IntentCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dsalmun.luxalarm.data.AlarmItem
 import java.util.Calendar
 import java.util.Locale
 import kotlinx.coroutines.flow.collectLatest
-import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -190,8 +190,7 @@ fun AlarmScreen(
                             alarmIdForRingtonePicker = alarm.id
                             val defaultUri =
                                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                            val existingUri =
-                                alarm.ringtoneUri?.toUri() ?: defaultUri
+                            val existingUri = alarm.ringtoneUri?.toUri() ?: defaultUri
                             val pickerIntent =
                                 Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                                     putExtra(
