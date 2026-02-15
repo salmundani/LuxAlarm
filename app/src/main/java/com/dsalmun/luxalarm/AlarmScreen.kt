@@ -33,12 +33,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -131,7 +126,10 @@ fun AlarmScreen(
                     showTimePickerDialog = true
                 }
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Alarm")
+                Icon(
+                    painter = painterResource(R.drawable.add_24px),
+                    contentDescription = "Add Alarm",
+                )
             }
         },
         topBar = {
@@ -139,7 +137,10 @@ fun AlarmScreen(
                 title = { Text("Lux Alarm") },
                 actions = {
                     IconButton(onClick = onSettingsClick) {
-                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(
+                            painter = painterResource(R.drawable.settings_24px),
+                            contentDescription = "Settings",
+                        )
                     }
                 },
                 colors =
@@ -276,9 +277,11 @@ fun AlarmRow(
                 )
                 Column(horizontalAlignment = Alignment.End) {
                     Icon(
-                        imageVector =
-                            if (expanded) Icons.Filled.KeyboardArrowUp
-                            else Icons.Filled.KeyboardArrowDown,
+                        painter =
+                            painterResource(
+                                if (expanded) R.drawable.keyboard_arrow_up_24px
+                                else R.drawable.keyboard_arrow_down_24px
+                            ),
                         contentDescription = if (expanded) "Collapse" else "Expand",
                     )
                     Switch(checked = alarm.isActive, onCheckedChange = onToggle)
@@ -311,7 +314,7 @@ fun AlarmRow(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Notifications,
+                        painter = painterResource(R.drawable.notifications_active_24px),
                         contentDescription = "Ringtone",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
