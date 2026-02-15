@@ -130,6 +130,31 @@ class AlarmViewModelTest {
     }
 
     @Test
+    fun setAlarmRingtone_callsRepository() = runTest {
+        val alarmId = 1
+        val ringtoneUri = "content://media/internal/audio/media/1"
+
+        viewModel.setAlarmRingtone(alarmId, ringtoneUri)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, fakeRepository.setAlarmRingtoneCallCount)
+        assertEquals(alarmId, fakeRepository.lastRingtoneAlarmId)
+        assertEquals(ringtoneUri, fakeRepository.lastRingtoneUri)
+    }
+
+    @Test
+    fun setAlarmRingtone_withNull_callsRepositoryWithNull() = runTest {
+        val alarmId = 2
+
+        viewModel.setAlarmRingtone(alarmId, null)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, fakeRepository.setAlarmRingtoneCallCount)
+        assertEquals(alarmId, fakeRepository.lastRingtoneAlarmId)
+        assertEquals(null, fakeRepository.lastRingtoneUri)
+    }
+
+    @Test
     fun alarms_stateFlowCollectsFromRepository() = runTest {
         val fakeAlarms = listOf(AlarmItem(id = 1, hour = 8, minute = 0))
         val newViewModel = AlarmViewModel(fakeRepository)
@@ -154,6 +179,9 @@ class FakeAlarmRepository : IAlarmRepository {
     var deleteAlarmCallCount = 0
     var updateAlarmTimeCallCount = 0
     var setRepeatDaysCallCount = 0
+    var setAlarmRingtoneCallCount = 0
+    var lastRingtoneAlarmId: Int? = null
+    var lastRingtoneUri: String? = null
 
     fun setShouldSucceed(succeed: Boolean) {
         shouldSucceed = succeed
@@ -186,6 +214,12 @@ class FakeAlarmRepository : IAlarmRepository {
 
     override suspend fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>) {
         setRepeatDaysCallCount++
+    }
+
+    override suspend fun setAlarmRingtone(alarmId: Int, ringtoneUri: String?) {
+        setAlarmRingtoneCallCount++
+        lastRingtoneAlarmId = alarmId
+        lastRingtoneUri = ringtoneUri
     }
 
     override suspend fun scheduleNextAlarm(): Boolean = shouldSucceed

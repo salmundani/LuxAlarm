@@ -48,14 +48,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-
     override fun onResume() {
         super.onResume()
         if (AppContainer.repository.isAlarmRinging()) {
             if (AlarmService.isRunning) {
-                val intent = Intent(this, AlarmActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                }
+                val intent =
+                    Intent(this, AlarmActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
                 startActivity(intent)
             } else {
                 AppContainer.repository.clearRingingAlarm()
@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             LuxAlarmTheme {
                 var showSettings by remember { mutableStateOf(false) }
-                
+
                 BackHandler(enabled = showSettings) { showSettings = false }
                 if (showSettings) {
                     SettingsScreen(onBackClick = { showSettings = false })
@@ -85,8 +85,11 @@ class MainActivity : ComponentActivity() {
 
     private fun requestRequiredPermissions() {
         // Request notification permission (Android 13+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED) {
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED
+        ) {
             requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
@@ -99,10 +102,11 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             val nm = getSystemService(NotificationManager::class.java)
             if (!nm.canUseFullScreenIntent()) {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
-                    "package:$packageName".toUri()
-                )
+                val intent =
+                    Intent(
+                        Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                        "package:$packageName".toUri(),
+                    )
                 startActivity(intent)
             }
         }

@@ -31,6 +31,8 @@ interface IAlarmRepository {
 
     suspend fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>)
 
+    suspend fun setAlarmRingtone(alarmId: Int, ringtoneUri: String?)
+
     suspend fun scheduleNextAlarm(): Boolean
 
     fun canScheduleExactAlarms(): Boolean

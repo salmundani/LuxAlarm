@@ -16,8 +16,14 @@
  */
 package com.dsalmun.luxalarm
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -31,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,11 +50,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.IntentCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dsalmun.luxalarm.data.AlarmItem
 import java.util.Calendar
 import java.util.Locale
 import kotlinx.coroutines.flow.collectLatest
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -60,6 +69,28 @@ fun AlarmScreen(
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var alarmToEdit by remember { mutableStateOf<AlarmItem?>(null) }
     var expandedAlarmId by remember { mutableStateOf<Int?>(null) }
+    var alarmIdForRingtonePicker by remember { mutableStateOf<Int?>(null) }
+
+    val ringtonePickerLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            val alarmId = alarmIdForRingtonePicker
+            alarmIdForRingtonePicker = null
+            if (alarmId == null || it.resultCode != Activity.RESULT_OK)
+                return@rememberLauncherForActivityResult
+
+            val selectedUri: Uri? =
+                it.data?.let { data ->
+                    IntentCompat.getParcelableExtra(
+                        data,
+                        RingtoneManager.EXTRA_RINGTONE_PICKED_URI,
+                        Uri::class.java,
+                    )
+                }
+            val defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            val ringtoneUriToStore =
+                selectedUri?.toString()?.takeUnless { selectedUri == defaultUri }
+            alarmViewModel.setAlarmRingtone(alarmId, ringtoneUriToStore)
+        }
 
     LaunchedEffect(key1 = Unit) {
         alarmViewModel.events.collectLatest { event ->
@@ -108,10 +139,7 @@ fun AlarmScreen(
                 title = { Text("Lux Alarm") },
                 actions = {
                     IconButton(onClick = onSettingsClick) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
-                        )
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
                     }
                 },
                 colors =
@@ -141,6 +169,10 @@ fun AlarmScreen(
                 items(alarms, key = { it.id }) { alarm ->
                     AlarmRow(
                         alarm = alarm,
+                        ringtoneDisplayName =
+                            remember(alarm.ringtoneUri) {
+                                getRingtoneDisplayName(context, alarm.ringtoneUri)
+                            },
                         expanded = expandedAlarmId == alarm.id,
                         onToggle = { isActive -> alarmViewModel.toggleAlarm(alarm.id, isActive) },
                         onClick = {
@@ -152,6 +184,33 @@ fun AlarmScreen(
                         },
                         onRepeatDaysChange = { newDays ->
                             alarmViewModel.setRepeatDays(alarm.id, newDays)
+                        },
+                        onRingtoneClick = {
+                            if (alarmIdForRingtonePicker != null) return@AlarmRow
+                            alarmIdForRingtonePicker = alarm.id
+                            val defaultUri =
+                                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                            val existingUri =
+                                alarm.ringtoneUri?.toUri() ?: defaultUri
+                            val pickerIntent =
+                                Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                                    putExtra(
+                                        RingtoneManager.EXTRA_RINGTONE_TYPE,
+                                        RingtoneManager.TYPE_ALARM,
+                                    )
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, defaultUri)
+                                    putExtra(
+                                        RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                                        existingUri,
+                                    )
+                                    putExtra(
+                                        RingtoneManager.EXTRA_RINGTONE_TITLE,
+                                        "Select ringtone",
+                                    )
+                                }
+                            ringtonePickerLauncher.launch(pickerIntent)
                         },
                     )
                 }
@@ -194,11 +253,13 @@ fun AlarmScreen(
 @Composable
 fun AlarmRow(
     alarm: AlarmItem,
+    ringtoneDisplayName: String,
     expanded: Boolean,
     onToggle: (Boolean) -> Unit,
     onClick: () -> Unit,
     onTimeClick: () -> Unit,
     onRepeatDaysChange: (Set<Int>) -> Unit,
+    onRingtoneClick: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -245,6 +306,24 @@ fun AlarmRow(
                         onRepeatDaysChange(newDays)
                     },
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Notifications,
+                        contentDescription = "Ringtone",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = ringtoneDisplayName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable(onClick = onRingtoneClick),
+                    )
+                }
             }
         }
     }
@@ -319,6 +398,13 @@ fun formatRepeatDays(days: Set<Int>, hour: Int, minute: Int): String {
             }
         }
     return dayNames.joinToString(", ")
+}
+
+private fun getRingtoneDisplayName(context: Context, ringtoneUri: String?): String {
+    val uri =
+        if (ringtoneUri.isNullOrBlank()) RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        else ringtoneUri.toUri()
+    return RingtoneManager.getRingtone(context, uri)?.getTitle(context) ?: "Unknown"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

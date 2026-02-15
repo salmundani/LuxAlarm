@@ -26,8 +26,10 @@ import androidx.test.rule.ServiceTestRule
 import com.dsalmun.luxalarm.data.AlarmDatabase
 import com.dsalmun.luxalarm.data.AlarmItem
 import com.dsalmun.luxalarm.data.IAlarmRepository
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,8 +68,18 @@ class AlarmServiceTest {
     fun deactivateOneShotAlarms_onlyDeactivatesNonRepeating() {
         val dao = database.alarmDao()
         runBlocking {
-            dao.insert(AlarmItem(id = 1, hour = 7, minute = 0, isActive = true, repeatDays = emptySet()))
-            dao.insert(AlarmItem(id = 2, hour = 8, minute = 0, isActive = true, repeatDays = setOf(1, 2, 3)))
+            dao.insert(
+                AlarmItem(id = 1, hour = 7, minute = 0, isActive = true, repeatDays = emptySet())
+            )
+            dao.insert(
+                AlarmItem(
+                    id = 2,
+                    hour = 8,
+                    minute = 0,
+                    isActive = true,
+                    repeatDays = setOf(1, 2, 3),
+                )
+            )
             dao.deactivateOneShotAlarms(listOf(1, 2))
         }
 
@@ -84,10 +96,45 @@ class AlarmServiceTest {
         val service = (binder as AlarmService.LocalBinder).getService()
         assertNotNull(service)
     }
+
+    @Test
+    fun setAlarmRingtone_persistsUri() {
+        val dao = database.alarmDao()
+        val uri = "content://media/internal/audio/media/42"
+        runBlocking {
+            dao.insert(AlarmItem(id = 1, hour = 7, minute = 0))
+            val alarm = dao.getAlarmById(1)!!
+            dao.update(alarm.copy(ringtoneUri = uri))
+        }
+        val result = runBlocking { dao.getAlarmById(1) }
+        assertEquals(uri, result!!.ringtoneUri)
+    }
+
+    @Test
+    fun setAlarmRingtone_nullClearsUri() {
+        val dao = database.alarmDao()
+        val uri = "content://media/internal/audio/media/42"
+        runBlocking {
+            dao.insert(AlarmItem(id = 1, hour = 7, minute = 0, ringtoneUri = uri))
+            val alarm = dao.getAlarmById(1)!!
+            dao.update(alarm.copy(ringtoneUri = null))
+        }
+        val result = runBlocking { dao.getAlarmById(1) }
+        assertNull(result!!.ringtoneUri)
+    }
+
+    @Test
+    fun alarmItem_defaultRingtoneIsNull() {
+        val dao = database.alarmDao()
+        runBlocking { dao.insert(AlarmItem(id = 1, hour = 7, minute = 0)) }
+        val result = runBlocking { dao.getAlarmById(1) }
+        assertNull(result!!.ringtoneUri)
+    }
 }
 
 class FakeAlarmRepository : IAlarmRepository {
     private val alarmsFlow = MutableStateFlow<List<AlarmItem>>(emptyList())
+
     override fun getAllAlarms(): Flow<List<AlarmItem>> = alarmsFlow
 
     override suspend fun addAlarm(hour: Int, minute: Int): Boolean = true
@@ -99,6 +146,8 @@ class FakeAlarmRepository : IAlarmRepository {
     override suspend fun deleteAlarm(alarmId: Int) {}
 
     override suspend fun setRepeatDays(alarmId: Int, repeatDays: Set<Int>) {}
+
+    override suspend fun setAlarmRingtone(alarmId: Int, ringtoneUri: String?) {}
 
     override suspend fun scheduleNextAlarm(): Boolean = true
 

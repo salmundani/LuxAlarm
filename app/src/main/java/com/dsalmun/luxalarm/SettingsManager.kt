@@ -18,10 +18,10 @@ package com.dsalmun.luxalarm
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import androidx.core.content.edit
 
 class SettingsManager(context: Context) {
     private val prefs: SharedPreferences =

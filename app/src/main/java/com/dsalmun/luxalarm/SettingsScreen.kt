@@ -46,15 +46,16 @@ fun rememberLightSensorValue(): Float {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
 
-        val listener = object : SensorEventListener {
-            override fun onSensorChanged(event: SensorEvent) {
-                if (event.sensor.type == Sensor.TYPE_LIGHT) {
-                    lightLevel = event.values[0]
+        val listener =
+            object : SensorEventListener {
+                override fun onSensorChanged(event: SensorEvent) {
+                    if (event.sensor.type == Sensor.TYPE_LIGHT) {
+                        lightLevel = event.values[0]
+                    }
                 }
-            }
 
-            override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
-        }
+                override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
+            }
 
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -98,7 +99,7 @@ fun SettingsScreen(onBackClick: () -> Unit) {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
                         )
                     }
                 },
@@ -111,17 +112,14 @@ fun SettingsScreen(onBackClick: () -> Unit) {
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.padding(innerPadding).fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.Top,
         ) {
             LuxLevelSetting(
                 currentValue = sliderValue,
                 currentLightLevel = currentLightLevel,
                 onValueChange = { sliderValue = it },
-                onValueChangeFinished = { settingsManager.setRequiredLuxLevel(sliderValue) }
+                onValueChangeFinished = { settingsManager.setRequiredLuxLevel(sliderValue) },
             )
         }
     }
@@ -135,16 +133,12 @@ private fun LuxLevelSetting(
     onValueChangeFinished: () -> Unit,
 ) {
     val meetsThreshold = currentLightLevel >= currentValue
-    
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Required Light Level",
                 fontSize = 18.sp,
@@ -158,21 +152,19 @@ private fun LuxLevelSetting(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             )
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Current light level display
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (meetsThreshold) 
-                        MaterialTheme.colorScheme.primaryContainer 
-                    else 
-                        MaterialTheme.colorScheme.surfaceContainerHighest,
-                ),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            if (meetsThreshold) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerHighest
+                    ),
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -185,16 +177,15 @@ private fun LuxLevelSetting(
                         text = "${currentLightLevel.toInt()} lux",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (meetsThreshold) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
-                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        color =
+                            if (meetsThreshold) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -209,9 +200,7 @@ private fun LuxLevelSetting(
                     onValueChange = onValueChange,
                     onValueChangeFinished = onValueChangeFinished,
                     valueRange = SettingsManager.MIN_LUX_LEVEL..SettingsManager.MAX_LUX_LEVEL,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                 )
                 Text(
                     text = "${SettingsManager.MAX_LUX_LEVEL.toInt()}",
@@ -219,11 +208,8 @@ private fun LuxLevelSetting(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 )
             }
-            
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
+
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
                     text = "${currentValue.toInt()} lux",
                     fontSize = 24.sp,
@@ -231,23 +217,20 @@ private fun LuxLevelSetting(
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
-                text = if (meetsThreshold) 
-                    "✓ Current light level meets threshold" 
-                else 
-                    "Current light is below threshold",
+                text =
+                    if (meetsThreshold) "✓ Current light level meets threshold"
+                    else "Current light is below threshold",
                 fontSize = 12.sp,
-                color = if (meetsThreshold) 
-                    MaterialTheme.colorScheme.primary 
-                else 
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                color =
+                    if (meetsThreshold) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
         }
     }
 }
-

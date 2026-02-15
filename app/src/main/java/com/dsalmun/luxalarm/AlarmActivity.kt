@@ -57,9 +57,14 @@ class AlarmActivity : ComponentActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() { /* block back press while alarm is ringing */ }
-        })
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    /* block back press while alarm is ringing */
+                }
+            },
+        )
 
         alarmId = intent.getIntExtra("alarm_id", -1)
         requiredLightLevel = AppContainer.settingsManager.getRequiredLuxLevel()

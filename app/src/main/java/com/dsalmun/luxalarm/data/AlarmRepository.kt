@@ -21,16 +21,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.core.content.edit
 import com.dsalmun.luxalarm.AlarmReceiver
 import com.dsalmun.luxalarm.MainActivity
-import kotlinx.coroutines.flow.Flow
 import java.util.Calendar
-import androidx.core.content.edit
+import kotlinx.coroutines.flow.Flow
 
-class AlarmRepository(
-    private val alarmDao: AlarmDao,
-    private val context: Context,
-) : IAlarmRepository {
+class AlarmRepository(private val alarmDao: AlarmDao, private val context: Context) :
+    IAlarmRepository {
     private companion object {
         const val NEXT_ALARM_REQUEST_CODE = 0
         const val PREFS_NAME = "alarm_state"
@@ -93,6 +91,14 @@ class AlarmRepository(
         scheduleNextAlarm()
     }
 
+    override suspend fun setAlarmRingtone(alarmId: Int, ringtoneUri: String?) {
+        val alarm = alarmDao.getAlarmById(alarmId) ?: return
+        val updatedAlarm = alarm.copy(ringtoneUri = ringtoneUri)
+        alarmDao.update(updatedAlarm)
+        // Reschedule: ringtone URI is embedded in the PendingIntent extras
+        scheduleNextAlarm()
+    }
+
     override suspend fun scheduleNextAlarm(): Boolean {
         val activeAlarms = alarmDao.getActiveAlarms()
 
@@ -105,20 +111,24 @@ class AlarmRepository(
             return false
         }
 
-        val alarmTriggers = activeAlarms.map { alarm ->
-            alarm to calculateNextTrigger(alarm.hour, alarm.minute, alarm.repeatDays)
-        }
+        val alarmTriggers =
+            activeAlarms.map { alarm ->
+                alarm to calculateNextTrigger(alarm.hour, alarm.minute, alarm.repeatDays)
+            }
 
         val minTriggerTime = alarmTriggers.minOf { it.second }
 
-        val alarmIds = alarmTriggers
-            .filter { it.second == minTriggerTime }
-            .map { it.first.id }
+        val nextAlarms =
+            alarmTriggers.filter { it.second == minTriggerTime }.sortedBy { it.first.id }
+        val alarmIds = nextAlarms.map { it.first.id }
+        // When multiple alarms fire simultaneously, use ringtone from lowest-ID alarm
+        val nextAlarm = nextAlarms.first().first
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent =
             Intent(context, AlarmReceiver::class.java).apply {
                 putIntegerArrayListExtra("alarm_ids", ArrayList(alarmIds))
+                putExtra("ringtone_uri", nextAlarm.ringtoneUri)
             }
         val pendingIntent =
             PendingIntent.getBroadcast(
@@ -163,12 +173,13 @@ class AlarmRepository(
         if (prefs.getBoolean(KEY_V1_MIGRATED, false)) return
         for (id in alarmDao.getAllAlarmIds()) {
             val intent = Intent(context, AlarmReceiver::class.java)
-            val pendingIntent = PendingIntent.getBroadcast(
-                context,
-                id,
-                intent,
-                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
-            )
+            val pendingIntent =
+                PendingIntent.getBroadcast(
+                    context,
+                    id,
+                    intent,
+                    PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+                )
             pendingIntent?.cancel()
         }
         prefs.edit { putBoolean(KEY_V1_MIGRATED, true) }

@@ -58,11 +58,12 @@ class CancelV1AlarmsTest {
         for (id in testAlarmIds) {
             val intent = Intent(context, AlarmReceiver::class.java)
             PendingIntent.getBroadcast(
-                context,
-                id,
-                intent,
-                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
-            )?.cancel()
+                    context,
+                    id,
+                    intent,
+                    PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+                )
+                ?.cancel()
         }
         context.getSharedPreferences("alarm_state", Context.MODE_PRIVATE).edit().clear().apply()
     }
@@ -87,24 +88,26 @@ class CancelV1AlarmsTest {
         }
 
         for (id in testAlarmIds) {
-            val existing = PendingIntent.getBroadcast(
-                context,
-                id,
-                intent,
-                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
-            )
+            val existing =
+                PendingIntent.getBroadcast(
+                    context,
+                    id,
+                    intent,
+                    PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+                )
             assertNotNull(existing, "v1 PendingIntent for alarm $id should exist before migration")
         }
 
         runBlocking { repository.cancelV1Alarms() }
 
         for (id in testAlarmIds) {
-            val afterMigration = PendingIntent.getBroadcast(
-                context,
-                id,
-                intent,
-                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
-            )
+            val afterMigration =
+                PendingIntent.getBroadcast(
+                    context,
+                    id,
+                    intent,
+                    PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+                )
             assertNull(afterMigration, "v1 PendingIntent for alarm $id should be cancelled")
         }
 
@@ -118,9 +121,7 @@ class CancelV1AlarmsTest {
         prefs.edit().putBoolean("v1_migrated", true).apply()
 
         val dao = database.alarmDao()
-        runBlocking {
-            dao.insert(AlarmItem(id = 1, hour = 7, minute = 0, isActive = true))
-        }
+        runBlocking { dao.insert(AlarmItem(id = 1, hour = 7, minute = 0, isActive = true)) }
         testAlarmIds.add(1)
 
         val intent = Intent(context, AlarmReceiver::class.java)
@@ -133,12 +134,13 @@ class CancelV1AlarmsTest {
 
         runBlocking { repository.cancelV1Alarms() }
 
-        val existing = PendingIntent.getBroadcast(
-            context,
-            1,
-            intent,
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
-        )
+        val existing =
+            PendingIntent.getBroadcast(
+                context,
+                1,
+                intent,
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+            )
         assertNotNull(existing, "v1 PendingIntent should still exist when migration is skipped")
     }
 }

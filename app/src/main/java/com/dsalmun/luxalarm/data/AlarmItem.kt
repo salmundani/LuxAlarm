@@ -28,4 +28,5 @@ data class AlarmItem(
     val minute: Int,
     val isActive: Boolean = true,
     val repeatDays: Set<Int> = emptySet(),
+    val ringtoneUri: String? = null,
 )

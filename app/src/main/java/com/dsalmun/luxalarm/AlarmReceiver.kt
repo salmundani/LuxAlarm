@@ -28,11 +28,13 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val alarmIds = intent?.getIntegerArrayListExtra("alarm_ids") ?: arrayListOf()
         val alarmId = alarmIds.firstOrNull() ?: -1
+        val ringtoneUri = intent?.getStringExtra("ringtone_uri")
 
         if (AppContainer.repository.setRingingAlarm()) {
             val serviceIntent =
                 Intent(context, AlarmService::class.java).apply {
                     putExtra("alarm_id", alarmId)
+                    putExtra("ringtone_uri", ringtoneUri)
                 }
             ContextCompat.startForegroundService(context, serviceIntent)
         }

@@ -30,14 +30,16 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.os.VibrationAttributes
 import android.os.VibrationEffect
-import android.os.PowerManager
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 
 class AlarmService : Service() {
@@ -70,45 +72,45 @@ class AlarmService : Service() {
             }
             else -> {
                 val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
-                startAlarm(alarmId)
+                val ringtoneUri = intent?.getStringExtra("ringtone_uri")
+                startAlarm(alarmId, ringtoneUri)
                 START_STICKY
             }
         }
     }
 
-    private fun startAlarm(alarmId: Int) {
+    private fun startAlarm(alarmId: Int, ringtoneUri: String?) {
         isRunning = true
         try {
             createNotificationChannel()
             val notification = buildAlarmNotification(alarmId)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(ALARM_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+                startForeground(
+                    ALARM_NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED,
+                )
             } else {
                 startForeground(ALARM_NOTIFICATION_ID, notification)
             }
 
-            val audioAttrs = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .build()
+            val audioAttrs = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build()
 
             // Request audio focus to prevent system from stopping/ducking our alarm
             audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                .setAudioAttributes(audioAttrs)
-                .build()
+            audioFocusRequest =
+                AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(audioAttrs)
+                    .build()
             audioManager?.requestAudioFocus(audioFocusRequest!!)
 
             // Start playing alarm sound
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            val defaultAlarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            val selectedAlarmUri = ringtoneUri?.let { Uri.parse(it) }
             mediaPlayer =
-                MediaPlayer().apply {
-                    setDataSource(applicationContext, alarmUri)
-                    setAudioAttributes(audioAttrs)
-                    setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
-                    isLooping = true
-                    prepare()
-                    start()
-                }
+                createPlayerForUri(selectedAlarmUri, audioAttrs)
+                    ?: createPlayerForUri(defaultAlarmUri, audioAttrs)
+                    ?: throw IllegalStateException("Failed to create MediaPlayer for alarm audio")
 
             // Start vibration
             vibrator =
@@ -124,16 +126,34 @@ class AlarmService : Service() {
             val vibrationPattern = longArrayOf(0, 1000, 500, 1000, 500)
             val vibrationEffect = VibrationEffect.createWaveform(vibrationPattern, 0)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val vibrationAttrs = VibrationAttributes.Builder()
-                    .setUsage(VibrationAttributes.USAGE_ALARM)
-                    .build()
+                val vibrationAttrs =
+                    VibrationAttributes.Builder().setUsage(VibrationAttributes.USAGE_ALARM).build()
                 vibrator?.vibrate(vibrationEffect, vibrationAttrs)
             } else {
-                @Suppress("DEPRECATION")
-                vibrator?.vibrate(vibrationEffect, audioAttrs)
+                @Suppress("DEPRECATION") vibrator?.vibrate(vibrationEffect, audioAttrs)
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun createPlayerForUri(uri: Uri?, audioAttrs: AudioAttributes): MediaPlayer? {
+        if (uri == null) return null
+        var player: MediaPlayer? = null
+        return try {
+            MediaPlayer().apply {
+                player = this
+                setDataSource(applicationContext, uri)
+                setAudioAttributes(audioAttrs)
+                setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
+                isLooping = true
+                prepare()
+                start()
+            }
+        } catch (e: Exception) {
+            Log.w("AlarmService", "Failed to play ringtone URI: $uri", e)
+            player?.release()
+            null
         }
     }
 
