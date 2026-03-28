@@ -24,6 +24,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.MediumTest
 import com.dsalmun.luxalarm.data.AlarmDatabase
 import com.dsalmun.luxalarm.data.AlarmDatabase.Companion.MIGRATION_1_2
+import com.dsalmun.luxalarm.data.AlarmDatabase.Companion.MIGRATION_2_3
 import com.dsalmun.luxalarm.data.AlarmItem
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -90,7 +91,55 @@ class MigrationTest {
 
     private fun openV2Database(): AlarmDatabase =
         Room.databaseBuilder(context, AlarmDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .allowMainThreadQueries()
+            .build()
+
+    private data class V2Alarm(
+        val id: Int,
+        val hour: Int,
+        val minute: Int,
+        val isActive: Boolean,
+        val repeatDays: String,
+        val ringtoneUri: String?,
+    )
+
+    private fun createV2Database(alarms: List<V2Alarm>) {
+        val dbPath = context.getDatabasePath(dbName)
+        dbPath.parentFile?.mkdirs()
+        val db = SQLiteDatabase.openOrCreateDatabase(dbPath, null)
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `alarms` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `hour` INTEGER NOT NULL,
+                `minute` INTEGER NOT NULL,
+                `isActive` INTEGER NOT NULL,
+                `repeatDays` TEXT NOT NULL,
+                `ringtoneUri` TEXT
+            )
+            """
+                .trimIndent()
+        )
+        for (alarm in alarms) {
+            val values =
+                ContentValues().apply {
+                    put("id", alarm.id)
+                    put("hour", alarm.hour)
+                    put("minute", alarm.minute)
+                    put("isActive", if (alarm.isActive) 1 else 0)
+                    put("repeatDays", alarm.repeatDays)
+                    put("ringtoneUri", alarm.ringtoneUri)
+                }
+            db.insert("alarms", null, values)
+        }
+        db.version = 2
+        db.close()
+    }
+
+    private fun openV3Database(): AlarmDatabase =
+        Room.databaseBuilder(context, AlarmDatabase::class.java, dbName)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
 
@@ -151,6 +200,85 @@ class MigrationTest {
             assertEquals(8, newAlarm.hour)
             assertEquals(15, newAlarm.minute)
             assertEquals("content://media/ringtone", newAlarm.ringtoneUri)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migrate2To3_addsVolumeColumn() {
+        val v2Alarms =
+            listOf(
+                V2Alarm(
+                    id = 1,
+                    hour = 7,
+                    minute = 30,
+                    isActive = true,
+                    repeatDays = "1,2,3,4,5",
+                    ringtoneUri = "content://media/ringtone",
+                ),
+                V2Alarm(
+                    id = 2,
+                    hour = 9,
+                    minute = 0,
+                    isActive = false,
+                    repeatDays = "",
+                    ringtoneUri = null,
+                ),
+            )
+        createV2Database(v2Alarms)
+
+        val db = openV3Database()
+        try {
+            val alarms = runBlocking { db.alarmDao().getAllAlarms().first() }
+            assertEquals(2, alarms.size)
+
+            val alarm1 = alarms.first { it.id == 1 }
+            assertEquals(7, alarm1.hour)
+            assertEquals(30, alarm1.minute)
+            assertEquals("content://media/ringtone", alarm1.ringtoneUri)
+            assertNull(alarm1.volume)
+
+            val alarm2 = alarms.first { it.id == 2 }
+            assertEquals(9, alarm2.hour)
+            assertEquals(0, alarm2.minute)
+            assertNull(alarm2.ringtoneUri)
+            assertNull(alarm2.volume)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migrate2To3_newRowsCanHaveCustomVolume() {
+        val v2Alarms =
+            listOf(
+                V2Alarm(
+                    id = 1,
+                    hour = 6,
+                    minute = 0,
+                    isActive = true,
+                    repeatDays = "",
+                    ringtoneUri = null,
+                )
+            )
+        createV2Database(v2Alarms)
+
+        val db = openV3Database()
+        try {
+            val dao = db.alarmDao()
+            runBlocking { dao.insert(AlarmItem(hour = 8, minute = 15, volume = 0.5f)) }
+
+            val alarms = runBlocking { dao.getAllAlarms().first() }
+            assertEquals(2, alarms.size)
+
+            val migrated = alarms.first { it.id == 1 }
+            assertNull(migrated.volume)
+
+            val newAlarm = alarms.first { it.id != 1 }
+            assertEquals(8, newAlarm.hour)
+            assertEquals(15, newAlarm.minute)
+            assertEquals(0.5f, newAlarm.volume)
         } finally {
             db.close()
         }

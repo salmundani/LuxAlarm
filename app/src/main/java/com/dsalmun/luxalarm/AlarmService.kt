@@ -74,13 +74,17 @@ class AlarmService : Service() {
             else -> {
                 val alarmId = intent?.getIntExtra("alarm_id", -1) ?: -1
                 val ringtoneUri = intent?.getStringExtra("ringtone_uri")
-                startAlarm(alarmId, ringtoneUri)
+                val volume =
+                    if (intent?.hasExtra("volume") == true)
+                        intent.getFloatExtra("volume", 1.0f)
+                    else null
+                startAlarm(alarmId, ringtoneUri, volume)
                 START_STICKY
             }
         }
     }
 
-    private fun startAlarm(alarmId: Int, ringtoneUri: String?) {
+    private fun startAlarm(alarmId: Int, ringtoneUri: String?, volume: Float? = null) {
         isRunning = true
         try {
             createNotificationChannel()
@@ -109,8 +113,8 @@ class AlarmService : Service() {
             val defaultAlarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             val selectedAlarmUri = ringtoneUri?.toUri()
             mediaPlayer =
-                createPlayerForUri(selectedAlarmUri, audioAttrs)
-                    ?: createPlayerForUri(defaultAlarmUri, audioAttrs)
+                createPlayerForUri(selectedAlarmUri, audioAttrs, volume)
+                    ?: createPlayerForUri(defaultAlarmUri, audioAttrs, volume)
                     ?: throw IllegalStateException("Failed to create MediaPlayer for alarm audio")
 
             // Start vibration
@@ -138,7 +142,11 @@ class AlarmService : Service() {
         }
     }
 
-    private fun createPlayerForUri(uri: Uri?, audioAttrs: AudioAttributes): MediaPlayer? {
+    private fun createPlayerForUri(
+        uri: Uri?,
+        audioAttrs: AudioAttributes,
+        volume: Float? = null,
+    ): MediaPlayer? {
         if (uri == null) return null
         var player: MediaPlayer? = null
         return try {
@@ -149,6 +157,7 @@ class AlarmService : Service() {
                 setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
                 isLooping = true
                 prepare()
+                if (volume != null) setVolume(volume, volume)
                 start()
             }
         } catch (e: Exception) {

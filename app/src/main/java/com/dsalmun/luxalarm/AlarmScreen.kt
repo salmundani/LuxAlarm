@@ -188,6 +188,9 @@ fun AlarmScreen(
                             alarmViewModel.setRepeatDays(alarm.id, newDays)
                         },
                         onDelete = { alarmToDelete = alarm },
+                        onVolumeChange = { newVolume ->
+                            alarmViewModel.setAlarmVolume(alarm.id, newVolume)
+                        },
                         onRingtoneClick = {
                             if (alarmIdForRingtonePicker != null) return@AlarmRow
                             alarmIdForRingtonePicker = alarm.id
@@ -285,6 +288,7 @@ fun AlarmRow(
     onDelete: () -> Unit,
     onRepeatDaysChange: (Set<Int>) -> Unit,
     onRingtoneClick: () -> Unit,
+    onVolumeChange: (Float) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -359,6 +363,24 @@ fun AlarmRow(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable(onClick = onRingtoneClick),
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        painter = painterResource(R.drawable.volume_up_24px),
+                        contentDescription = "Volume",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Slider(
+                        value = alarm.volume ?: 1f,
+                        onValueChange = onVolumeChange,
+                        valueRange = 0f..1f,
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     )
                 }
             }

@@ -99,6 +99,14 @@ class AlarmRepository(private val alarmDao: AlarmDao, private val context: Conte
         scheduleNextAlarm()
     }
 
+    override suspend fun setAlarmVolume(alarmId: Int, volume: Float?) {
+        val alarm = alarmDao.getAlarmById(alarmId) ?: return
+        val updatedAlarm = alarm.copy(volume = volume?.coerceIn(0f, 1f))
+        alarmDao.update(updatedAlarm)
+        // Reschedule: volume is embedded in the PendingIntent extras
+        scheduleNextAlarm()
+    }
+
     override suspend fun scheduleNextAlarm(): Boolean {
         val activeAlarms = alarmDao.getActiveAlarms()
 
@@ -129,6 +137,7 @@ class AlarmRepository(private val alarmDao: AlarmDao, private val context: Conte
             Intent(context, AlarmReceiver::class.java).apply {
                 putIntegerArrayListExtra("alarm_ids", ArrayList(alarmIds))
                 putExtra("ringtone_uri", nextAlarm.ringtoneUri)
+                nextAlarm.volume?.let { putExtra("volume", it) }
             }
         val pendingIntent =
             PendingIntent.getBroadcast(
