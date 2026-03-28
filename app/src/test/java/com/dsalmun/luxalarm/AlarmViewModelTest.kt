@@ -222,6 +222,8 @@ class FakeAlarmRepository : IAlarmRepository {
         lastRingtoneUri = ringtoneUri
     }
 
+    override suspend fun setAlarmVolume(alarmId: Int, volume: Float?) {}
+
     override suspend fun scheduleNextAlarm(): Boolean = shouldSucceed
 
     override fun canScheduleExactAlarms(): Boolean = true
