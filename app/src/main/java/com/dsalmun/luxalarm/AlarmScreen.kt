@@ -65,6 +65,7 @@ fun AlarmScreen(
     var alarmToEdit by remember { mutableStateOf<AlarmItem?>(null) }
     var expandedAlarmId by remember { mutableStateOf<Int?>(null) }
     var alarmIdForRingtonePicker by remember { mutableStateOf<Int?>(null) }
+    var alarmToDelete by remember { mutableStateOf<AlarmItem?>(null) }
 
     val ringtonePickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -186,6 +187,7 @@ fun AlarmScreen(
                         onRepeatDaysChange = { newDays ->
                             alarmViewModel.setRepeatDays(alarm.id, newDays)
                         },
+                        onDelete = { alarmToDelete = alarm },
                         onRingtoneClick = {
                             if (alarmIdForRingtonePicker != null) return@AlarmRow
                             alarmIdForRingtonePicker = alarm.id
@@ -237,15 +239,37 @@ fun AlarmScreen(
                 showTimePickerDialog = false
                 alarmToEdit = null
             },
-            onDelete =
-                if (alarmToEdit != null) {
-                    {
-                        alarmViewModel.deleteAlarm(alarmToEdit!!.id)
-                        showTimePickerDialog = false
-                        alarmToEdit = null
-                    }
-                } else null,
             timePickerState = timePickerState,
+        )
+    }
+
+    if (alarmToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { alarmToDelete = null },
+            title = { Text("Delete alarm") },
+            text = {
+                Text(
+                    String.format(
+                        Locale.getDefault(),
+                        "Delete the %02d:%02d alarm?",
+                        alarmToDelete!!.hour,
+                        alarmToDelete!!.minute,
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        alarmViewModel.deleteAlarm(alarmToDelete!!.id)
+                        alarmToDelete = null
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { alarmToDelete = null }) { Text("Cancel") }
+            },
         )
     }
 }
@@ -258,6 +282,7 @@ fun AlarmRow(
     onToggle: (Boolean) -> Unit,
     onClick: () -> Unit,
     onTimeClick: () -> Unit,
+    onDelete: () -> Unit,
     onRepeatDaysChange: (Set<Int>) -> Unit,
     onRingtoneClick: () -> Unit,
 ) {
@@ -275,16 +300,25 @@ fun AlarmRow(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable(onClick = onTimeClick),
                 )
-                Column(horizontalAlignment = Alignment.End) {
-                    Icon(
-                        painter =
-                            painterResource(
-                                if (expanded) R.drawable.keyboard_arrow_up_24px
-                                else R.drawable.keyboard_arrow_down_24px
-                            ),
-                        contentDescription = if (expanded) "Collapse" else "Expand",
-                    )
-                    Switch(checked = alarm.isActive, onCheckedChange = onToggle)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            painter = painterResource(R.drawable.delete_24px),
+                            contentDescription = "Delete alarm",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Icon(
+                            painter =
+                                painterResource(
+                                    if (expanded) R.drawable.keyboard_arrow_up_24px
+                                    else R.drawable.keyboard_arrow_down_24px
+                                ),
+                            contentDescription = if (expanded) "Collapse" else "Expand",
+                        )
+                        Switch(checked = alarm.isActive, onCheckedChange = onToggle)
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -416,7 +450,6 @@ fun TimePickerDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     timePickerState: TimePickerState,
-    onDelete: (() -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -424,13 +457,6 @@ fun TimePickerDialog(
         text = {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 TimePicker(state = timePickerState)
-            }
-        },
-        dismissButton = {
-            if (onDelete != null) {
-                TextButton(onClick = onDelete) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
             }
         },
         confirmButton = {
