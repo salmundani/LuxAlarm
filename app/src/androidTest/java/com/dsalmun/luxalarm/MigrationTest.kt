@@ -89,12 +89,6 @@ class MigrationTest {
         db.close()
     }
 
-    private fun openV2Database(): AlarmDatabase =
-        Room.databaseBuilder(context, AlarmDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-            .allowMainThreadQueries()
-            .build()
-
     private data class V2Alarm(
         val id: Int,
         val hour: Int,
@@ -152,7 +146,7 @@ class MigrationTest {
             )
         createV1Database(v1Alarms)
 
-        val db = openV2Database()
+        val db = openV3Database()
         try {
             val alarms = runBlocking { db.alarmDao().getAllAlarms().first() }
             assertEquals(2, alarms.size)
@@ -181,7 +175,7 @@ class MigrationTest {
             listOf(V1Alarm(id = 1, hour = 6, minute = 0, isActive = true, repeatDays = ""))
         createV1Database(v1Alarms)
 
-        val db = openV2Database()
+        val db = openV3Database()
         try {
             val dao = db.alarmDao()
             runBlocking {
