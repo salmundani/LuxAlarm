@@ -66,6 +66,9 @@ android {
                 // org.gradle.jvmargs sizes the daemon, not the forked test JVM, which
                 // otherwise defaults to 512m — not enough for Robolectric plus Compose.
                 it.maxHeapSize = "2g"
+                // Robolectric 4.17 reaches into SharedSecrets to fake FileDescriptors, which
+                // recent JDKs no longer export; without this every sandboxed test fails.
+                it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
                 // Robolectric's sandbox classloader leaves app classes with no code-source
                 // location, so without this JaCoCo drops their data and reports 0% coverage.
                 it.extensions.configure(JacocoTaskExtension::class.java) {

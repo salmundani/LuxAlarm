@@ -35,8 +35,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.shadows.SensorEventBuilder
 import org.robolectric.shadows.ShadowSensor
-import org.robolectric.shadows.ShadowSensorManager
 
 /** The real sensor plumbing: the type guard, the missing sensor, and the tied registration. */
 @RunWith(AndroidJUnit4::class)
@@ -171,8 +171,11 @@ class LightSensorValueTest {
     }
 
     private fun send(sensorType: Int, value: Float) {
-        val event: SensorEvent = ShadowSensorManager.createSensorEvent(1, sensorType)
-        event.values[0] = value
+        val event: SensorEvent =
+            SensorEventBuilder.newBuilder()
+                .setSensor(ShadowSensor.newInstance(sensorType))
+                .setValues(floatArrayOf(value))
+                .build()
         composeRule.runOnUiThread { shadowOf(sensorManager).sendSensorEventToListeners(event) }
         composeRule.waitForIdle()
     }
