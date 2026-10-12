@@ -172,7 +172,6 @@ internal fun LuxLevelSetting(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Current light level display
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors =

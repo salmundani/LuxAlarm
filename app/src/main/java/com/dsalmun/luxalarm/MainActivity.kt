@@ -81,7 +81,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestRequiredPermissions() {
-        // Request notification permission (Android 13+)
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
@@ -90,12 +89,10 @@ class MainActivity : ComponentActivity() {
             requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        // Request exact alarm permission
         if (!AppContainer.repository.canScheduleExactAlarms()) {
             requestExactAlarmPermission()
         }
 
-        // Request full-screen intent permission (Android 14+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             val nm = getSystemService(NotificationManager::class.java)
             if (!nm.canUseFullScreenIntent()) {

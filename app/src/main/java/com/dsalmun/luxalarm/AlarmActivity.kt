@@ -118,9 +118,7 @@ class AlarmActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
-        // No action needed for light sensor accuracy changes
-    }
+    override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
 
     private fun setupScreenWake() {
         setShowWhenLocked(true)

@@ -1,14 +1,13 @@
-<b>Stop Oversleeping with Lux Alarm</b>
+<b>Stop oversleeping with Lux Alarm</b>
 
-Tired of hitting snooze and waking up late? Lux Alarm ensures you actually get out of bed by requiring light to silence the alarm.
+Tired of hitting snooze and waking up late? Lux Alarm keeps ringing until your room is bright, so you have to get out of bed.
 
 <b>How it works</b>
 
 To stop the alarm, you must get up and open your blinds or turn on the light. The app uses your phone's sensor to detect brightness; by the time the alarm turns off, you are already on your feet and ready to start your day.
 
-<b>Key Features</b>
+<b>Features</b>
 
-• Smart Light Detection: Uses your phone's sensor to ensure the alarm only deactivates once your environment is bright.
-• Adjustable Sensitivity: Customize the required light level to account for gloomy weather or different room setups.
-• Modern Interface: A clean, intuitive design based on Material Design 3 for easy navigation.
-• Circadian Support: Waking up with light helps regulate your natural sleep cycle and reduces morning grogginess.
+• The alarm only turns off once your phone's sensor detects a bright room.
+• Adjust the required light level to account for gloomy weather or different room setups.
+• Interface built with Material Design 3.
